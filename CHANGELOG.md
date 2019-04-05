@@ -1,0 +1,36 @@
+# Changelog
+
+## [1.4.8] - 2018-06-10
+### Added
+- "Add keys" button.
+- "Add metal" button.
+- "Add listing price" button.
+- Index field
+
+### Changed
+- Rate of which items are added.
+
+### Removed
+- Gift tag warnings as they are not needed since gift tags can be removed from items.
+
+## [1.4.9] - 2018-07-08
+### Added
+- Summaries now link to the user's backpack with item's in offer filtered.
+- backpack.tf inventory item filtering using URL query parameter "select" as comma-seperated array of item IDs.
+- Refined values on backpack.tf are now displayed in keys rather than refined when available.
+
+### Changed
+- Rate of which items are removed.
+- Filtering for items like keys and metal is now much faster.
+- Other performance enhancements.
+
+## [1.5.0] - 2018-11-13
+### Added
+- Refreshing summaries after every 5 seconds.
+
+### Changed
+- Listing intents on backpack.tf being written as "buy" or "sell" on listings rather than 1 or 0.
+
+## [1.5.1] - 2019-04-05
+### Added
+- Add items by ID (only available through console in current state).
