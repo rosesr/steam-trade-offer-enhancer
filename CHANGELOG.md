@@ -34,3 +34,7 @@
 ## [1.5.1] - 2019-04-05
 ### Added
 - Add items by ID (only available through console in current state).
+
+## [1.6.0] - 2019-04-11
+### Changed
+- Cleaned code.
