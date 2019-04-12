@@ -38,3 +38,14 @@
 ## [1.6.0] - 2019-04-11
 ### Changed
 - Cleaned code.
+
+## [1.6.1] - 2019-04-11
+### Fixed
+- Summary descriptions having a single quote.
+- Issue with adding by ID.
+- Spacing in summaries.
+
+### Changed
+- Cleaned code.
+- Some optimization here and there.
+- Interval period when adding multiple items (from 10 to 20).

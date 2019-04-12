@@ -7,7 +7,7 @@
 // @include     /^https?:\/\/(.*\.)?backpack.tf(:\d+)?\/(?:id|profiles)\/.*/
 // @require     https://gist.github.com/raw/2625891/waitForKeyElements.js
 // @require     https://cdn.rawgit.com/juliarose/c285ec7f12f3f91375abb9b7a02902fe/raw/8124f481e6139609e7e5b96669037dca9dd8eebb/backpacktf_price_tools.js
-// @version     1.6.0
+// @version     1.6.1
 // @run-at      document-end
 // @author      HusKy (modified by Julia)
 // ==/UserScript==
@@ -44,10 +44,10 @@
      * @returns {Object} Object containing url parameters e.g. { 'item': 'Fruit Shoot' }
      */
     function getURLParams() {
-        // get url params
         let params = {};
+        let pattern = /[?&]+([^=&]+)=([^&]*)/gi;
         
-        window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(str, key, value) {
+        window.location.search.replace(pattern, (str, key, value) => {
             params[key] = decodeURIComponent(value);
         });
         
@@ -61,6 +61,19 @@
      */
     function isEmpty(value) {
         return value === undefined || value === null || value === '';
+    }
+    
+    /**
+     * Get a list of IDs from a comma-seperated string
+     * @param {String} str - Comma-seperated string
+     * @returns {(Array|null)} Array if string is valid, null if not
+     */
+    function getIDsFromString(str) {
+        if (/(\d+)(,\s*\d+)*/.test(str)) {
+            return str.split(',');
+        }
+        
+        return null;
     }
     
     function getTradeOfferWindow() {
@@ -90,22 +103,23 @@
         let tradeOfferWindow = (function() {
             /**
              * Get inventory for user
-             * @param {Boolean} yours - Is this your inventory?
+             * @param {Boolean} my - Is this my inventory?
              * @returns {Object} Your inventory if 'yours' is true, otherwise their inventory
              */
-            function getInventory(yours) {
+            function getInventory(my) {
                 let myInventory = unsafeWindow.g_rgAppContextData;
                 let themInventory = unsafeWindow.g_rgPartnerAppContextData;
                 
-                return yours ? myInventory : themInventory;
+                return my ? myInventory : themInventory;
             }
             
             /**
              * Get summary of items
              * @param {Object} $items - jQuery object of collection of items
+             * @param {Boolean} my - Are these my items?
              * @returns {(Object|null)} Summary of items, null if inventory is not properly loaded
              */
-            function evaluateItems($items) {
+            function evaluateItems($items, my) {
                 const WARNINGS = [
                     {
                         name: 'rare TF2 key',
@@ -121,6 +135,7 @@
                             let defindex = appdata && appdata.def_index;
                             
                             return typeof defindex === 'string' &&
+                                item.appid === '440' &&
                                 rare440Keys.indexOf(defindex) !== -1;
                         }
                     },
@@ -133,6 +148,7 @@
                             };
                             
                             return typeof descriptions === 'object' &&
+                                item.appid === '440' &&
                                 descriptions.some(isUncraftable);
                         }
                     },
@@ -144,7 +160,8 @@
                                 return text.indexOf('restricted gift') !== -1;
                             };
                             
-                            return typeof descriptions === 'object' &&
+                            return typeof fraudwarnings === 'object' &&
+                                item.appid === '753' && 
                                 fraudwarnings.some(isRestricted);
                         }
                     }
@@ -153,7 +170,7 @@
                     // get all slots that contain contents
                     return !isEmpty(el.innerHTML.trim());
                 });
-                let inventory = getInventory($items[0].id === 'your_slots');
+                let inventory = getInventory(my);
                 let result = {
                     total: $slotInner.length,
                     item: {},
@@ -217,7 +234,7 @@
                 function getHeader() {
                     let itemsStr = items.total === 1 ? 'item' : 'items';
                     
-                    return `${type} summary (${items.total} ${itemsStr}'):<br/>`;
+                    return `${type} summary (${items.total} ${itemsStr}):<br/>`;
                 }
                 
                 function getSummary() {
@@ -237,25 +254,30 @@
                     function getItems() {
                         let html = '';
                         
+                        function getItem(img, quality, count) {
+                            let styles = `background-image: url(${img}); border-color: ${quality};`;
+                            let badge = `<span class="summary_badge">${count}</span>`;
+                            
+                            return `<span class="summary_item" style="${styles}">${badge}</span>`;
+                        }
+                        
                         // item counts
                         for (let img in items.item) {
-                            let imgQualities = items.item[img];
-                            
-                            for (let quality in imgQualities) {
-                                let count = imgQualities[quality];
+                            for (let quality in items.item[img]) {
+                                let count = items.item[img][quality];
                                 
-                                html += `<span class="summary_item" style="background-image: url(${img}); border-color: ${quality};"><span class="summary_badge">${count}</span></span>`;
+                                html += getItem(img, quality, count);
                             }
                         }
                         
                         return html;
                     }
                     
-                    let ids440 = items.apps['440'] && items.apps['440']['2'];
+                    let ids = items.apps['440'] && items.apps['440']['2'];
                     
-                    if (ids440) {
+                    if (ids) {
                         // return summary items with backpack.tf link wrapped around, if tf2 items are in offer
-                        return wrapBackpackLink(getItems(), ids440);
+                        return wrapBackpackLink(getItems(), ids);
                     } else {
                         return getItems();
                     }
@@ -264,6 +286,7 @@
                 function getWarnings() {
                     if (items.warnings.length === 0) return ''; // no warnings to display
                     
+                    // so that descriptions are always in the same order
                     let descriptions = items.warnings.sort().join('<br/>');
                     
                     return `<span class="warning"><br/>Warning:<br/>${descriptions}</span>`;
@@ -278,12 +301,15 @@
             }
             
             function summarize() {
-                let myItems = evaluateItems(page.$yourSlots);
-                let otherItems = evaluateItems(page.$theirSlots);
+                let myItems = evaluateItems(page.$yourSlots, true);
+                let otherItems = evaluateItems(page.$theirSlots, false);
+                // whether to add spacing or not
+                let addSpace =  myItems && myItems.total > 0 &&
+                    otherItems && otherItems.total > 0; 
                 // generate the summary HTML
                 let html = [
                     dumpSummary('My', myItems, unsafeWindow.UserYou),
-                    otherItems.total > 0 ? '<br/><br/>' : '',
+                    addSpace ? '<br/><br/>' : '',
                     dumpSummary('Their', otherItems, unsafeWindow.UserThem)
                 ].join('');
                 
@@ -291,6 +317,11 @@
             }
             
             function ready() {
+                function pollRefresh() {
+                    // refresh every x seconds
+                    setInterval(summarize, 30 * 1000);
+                }
+                
                 // call userchanged on current active tab
                 userChanged(get.$activeInventoryTab()); 
                 
@@ -299,16 +330,6 @@
                     summarize();
                     pollRefresh();
                 }, 100);
-            }
-            
-            function pollRefresh() {
-                // refresh every x seconds
-                setInterval(summarize, 30 * 1000);
-            }
-            
-            // check if there are spinners on page to indicate whether the inventory is loaded
-            function isReady() {
-                return get.$imgThrobber().length <= 0;
             }
             
             // clear items that were added to the offer
@@ -341,14 +362,16 @@
                 
                 let isTF2 = appid === '440';
                 let isCSGO = appid === '730';
-                let listingIntent = URLPARAMS.listing_intent;
-                // has correct intent for the inventory shown
                 // "0" = buy order
                 // "1" = sell order
-                let hasIntent = (my && listingIntent === '1') || (!my && listingIntent === '0');
+                let listingIntent = URLPARAMS.listing_intent;
+                // we are selling to a buy order, show button on their inventory
+                let isSelling = !my && listingIntent === '0'; 
+                // we are buying from a sell order, show button on my inventory
+                let isBuying = my && listingIntent === '1';
                 let showKeys = isTF2 || isCSGO;
                 let showMetal = isTF2;
-                let showListingButton = isTF2 && hasIntent;
+                let showListingButton = isTF2 && (isBuying || isSelling);
                 
                 updateState(page.btns.$items, true); 
                 updateState(page.btns.$keys, showKeys);
@@ -403,7 +426,12 @@
                         init();
                     }
                 }
-                 
+                
+                // check if there are spinners on page to indicate whether the inventory is loaded
+                function isReady() {
+                    return get.$imgThrobber().length <= 0;
+                }
+                     
                 // something is loading
                 let hasItemParam = URLPARAMS.for_item !== undefined;
                 let hasBeenLoaded = !hasItemParam || itemParamLoaded();
@@ -428,7 +456,7 @@
             };
         }());
         // used for identifying items
-        let IDENTIFIERS = {
+        const IDENTIFIERS = {
             // item is key
             IS_KEY: function(item) {
                 switch (item.appid) {
@@ -440,7 +468,6 @@
                 
                 return null;
             },
-            
             // item has tag
             HAS_TAG: function(item, tagName, tagValue) {
                 if (!item.tags) return null;
@@ -463,7 +490,7 @@
         // used for finding items
         // these are somewhat expensive
         // might make this faster later on
-        let FINDERS = {
+        const FINDERS = {
             // return items using finder method
             ITEMS: function(finder, user) {
                 let $inventory = get.$inventory();
@@ -484,36 +511,34 @@
                     page.$yourSlots.find('.item') :
                     page.$theirSlots.find('.item')
                 );
-                let appid = match[1];
-                let contextid = match[2];
+                let [ ,appid, contextid] = match;
                 let inventory = user.rgAppInfo[appid].rgContexts[contextid].inventory.rgInventory;
                 // get list of id's in trade offer so we don't repeat any items
                 let elIds = $items.map((index, el) => el.id).get();
-                let matches = Object.keys(inventory).map(k => inventory[k]).sort((a, b) => {
-                    // sort items by position (first to last)
-                    return a.pos - b.pos;
-                }).filter((item) => {
-                    return finder(item) && elIds.indexOf(itemToElId(item)) === -1;
-                });
+                let items = Object.keys(inventory).map(k => inventory[k]).filter((item) => {
+                    return elIds.indexOf(itemToElId(item)) === -1 && finder(item);
+                }).sort((a, b) => a.pos - b.pos); // sort items by position
                 
-                return matches;
+                return items;
             },
-            
-            METAL: function() {
+            METAL: (function() {
                 function hasName(item, name) {
                     return item.appid == 440 && item.market_hash_name === name;
                 }
                 
-                let finder = FINDERS.ITEMS;
-                
-                // return groups of each kind of metal
+                // find each type of metal
                 return {
-                    'Refined Metal': finder((item) => hasName(item, 'Refined Metal')),
-                    'Reclaimed Metal': finder((item) => hasName(item, 'Reclaimed Metal')),
-                    'Scrap Metal': finder((item) => hasName(item, 'Scrap Metal'))
+                    'Refined Metal': function() {
+                        return FINDERS.ITEMS((item) => hasName(item, 'Refined Metal'));
+                    },
+                    'Reclaimed Metal': function() {
+                        return FINDERS.ITEMS((item) => hasName(item, 'Reclaimed Metal'));
+                    },
+                    'Scrap Metal': function() {
+                        return FINDERS.ITEMS((item) => hasName(item, 'Scrap Metal'));
+                    }
                 };
-            },
-            
+            }()),
             // return items by array of id's
             ID: function(ids) {
                 let finder = FINDERS.ITEMS;
@@ -546,7 +571,7 @@
          * Add items to trade
          * @param {String} mode - Mode
          * @param {Number} amount - Number of items to add
-         * @param {Number} index - Beginning index to select items at (use negative to select in reverse)
+         * @param {Number} index - Beginning index to select items at (negative to select from back)
          * @param {addItems-callback} callback - Callback when items have finished adding
          * @returns {undefined}
          */
@@ -568,13 +593,14 @@
                 unsafeWindow.MoveItemToTrade(item);
             }
             
-            // modified from steam's source, should be a little more optimized for adding multiple items
+            // modified from steam's source
+            // should be a little more optimized for adding multiple items
             function addMultiItems(items, callback) {
                 if (items.length === 0) {
                     return callback();
                 }
                 
-                let timeout = 10;
+                let timeout = 20;
                 
                 // Add all items
                 for (let i = 0, amount = items.length; i < amount; i++) {
@@ -613,27 +639,37 @@
                     return Math.floor(Math.round(num * 9) / 9 * 100) / 100;
                 }
                 
-                function getMetal(key) {
-                    let collection = metal[key];
-                    let curValue = values[key];
+                // value was met
+                function valueMet() {
+                    return total === value;
+                }
+                
+                function getMetal(type) {
+                    if (valueMet()) {
+                        // empty array
+                        return []; 
+                    }
+                    
+                    let items = metal[type](); // get array of metal
+                    let curValue = values[type];
                     // round each value for clean division
                     let count = Math.min(
                         // get number of metal to add based on how much more we need to add
                         // as well as the value of the metal we are adding
                         Math.floor(scrapMetal(value - total) / scrapMetal(curValue)),
                         // there isn't quite enough there...
-                        collection.length
+                        items.length
                     ); 
-                    let metalIndex = offsetIndex(index, count, collection.length);
+                    let metalIndex = offsetIndex(index, count, items.length);
                     
                      // add it to the total
                     total = scrapMetal(total + (count * curValue));
                     
                     // splice each individual type of metal
-                    return collection.splice(metalIndex, count); 
+                    return items.splice(metalIndex, count); 
                 }
                 
-                let metal = FINDERS.METAL();
+                let metal = FINDERS.METAL;
                 let values = {
                     'Refined Metal': 1,
                     'Reclaimed Metal': 1 / 3,
@@ -668,6 +704,16 @@
             }
             
             /**
+             * Offset amount based on the number of items available
+             * @param {Number} value - Amount to add
+             * @param {Number} length - Maximum number of items to pick from
+             * @returns {Number} Modified amount
+             */
+            function modifyAmount(value, length) {
+                return Math.min(Math.floor(value), length);
+            }
+            
+            /**
              * Pick items from 'items'
              * @param {Array} items - Array of items to pick from
              * @param {Number} amount - Number of items to pick
@@ -675,15 +721,6 @@
              * @returns {Array} Array of jQuery objects for items
              */
             function pickItems(items, amount, index) {
-                /**
-                 * Offset amount based on the number of items available
-                 * @param {Number} value - Amount to add
-                 * @param {Number} length - Maximum number of items to pick from
-                 * @returns {Number} Modified amount
-                 */
-                function modifyAmount(value, length) {
-                    return Math.min(Math.floor(value), length);
-                }
                 
                 amount = modifyAmount(amount, items.length);
                 index = offsetIndex(index, amount, items.length);
@@ -710,6 +747,11 @@
              * @returns {Array} First value is an array of items, second is whether the amount was satisfied
              */
             function getItems(mode, amount, index) {
+                // check if an element's display is not set to "none"
+                function isVisible(i, el) {
+                    return $(el).css('display') !== 'none';
+                }
+                
                 // get the original amount before it is changed
                 let items, satisfied;
                 
@@ -727,21 +769,17 @@
                         satisfied = found.satisfied;
                     } break;
                     case 'id': {
-                        let ids = index.split(','); // list of IDs is a string in index param
-                        let found = FINDERS.IDS(ids);
+                        // list of id's is passed through index
+                        let ids = index; 
+                        let found = FINDERS.ID(ids);
                         
                         items = pickItems(found, found.length, 0);
                         satisfied = ids.length === items.length;
                     } break;
                     case 'items':
                     default: {
-                        let found = get.$inventory().find('div.itemHolder').filter((index, el) => {
-                            return $(el).css('display') !== 'none';
-                        }).find('div.item').filter((index, el) => {
-                            return $(el).css('display') !== 'none';
-                        });
-                        
-                        console.log(found.length);
+                        // select all visible items from active inventory
+                        let found = get.$inventory().find('div.item').filter(isVisible);
                         
                         items = pickItems(found, amount, index);
                         satisfied = amount === items.length;
@@ -764,17 +802,16 @@
             function addElements() {
                 function getStyles() {
                     return `
-                        .tradeoffer_items_summary { color: #fff; font-size: 10px; }
+                        .tradeoffer_items_summary { color: #FFFFFF; font-size: 12px; }
                         .warning { color: #ff4422; }
                         .info { padding: 1px 3px; border-radius: 4px; background-color: #1155FF; border: 1px solid #003399; font-size: 14px; }
-                        .summary_item { padding: 3px; margin: 0 2px 2px 0; background-color: #3C352E;background-position: center; background-size: 48px 48px; background-repeat: no-repeat; border: 1px solid; font-size: 16px; width: 48px; height: 48px; display: inline-block; }
+                        .summary_item { padding: 3px; margin: 0 2px 2px 0; background-color: #3C352E; background-position: center; background-size: 48px 48px; background-repeat: no-repeat; border: 1px solid; font-size: 16px; width: 48px; height: 48px; display: inline-block; }
                         .summary_badge { padding: 1px 3px; border-radius: 4px; background-color: #0099CC; border: 1px solid #003399; font-size: 12px; }
                         .filter_full { width: 200px }
                         .btn_custom { margin-right: 6px; }
                         .btn_keys { background-color: #709D3C; }
                         .btn_metal { background-color: #676767; }
                         .btn_listing { background-color: #2E4766; }
-                        .summary_link { }
                     `;
                 }
                 
@@ -801,10 +838,6 @@
                 }
                 
                 function getIDControls() {
-                    if (URLPARAMS.listing_intent !== undefined) {
-                        // add listing
-                    }
-                    
                     return  `
                         <div id="id_fields">
                             <div class="filter_ctn">
@@ -845,7 +878,6 @@
             // add newly created elements to page object
             function getPageElements() {
                 page.$offerSummary = $('.tradeoffer_items_summary');
-                page.$btns = $('button.btn_add');
                 page.controls = {
                     $amount: $('#amount_control'),
                     $index: $('#index_control'),
@@ -937,16 +969,14 @@
                 
                 /**
                  * Add items by list of IDs
-                 * @param {String} ids - Comma-seperated list of IDs
+                 * @param {String} idsStr - Comma-seperated list of IDs
                  * @returns {undefined}
                  */
-                 function addIDs(ids) {
-                    if (/(\d+)(,\s*\d+)*/.test(ids)) {
-                        addItems('id', 1, ids, () => {
-                            
-                        });
-                    } else {
-                        alert('Not a valid input');
+                function addIDs(idsStr) {
+                    let ids = getIDsFromString(idsStr);
+                    
+                    if (ids) {
+                        addItems('id', 1, ids);
                     }
                 }
                 
@@ -1010,37 +1040,41 @@
             }
             
             function configure() {
-                // hide all initially
-                page.$btns.hide();
-                
-                tradeOfferWindow.init();
-                tradeOfferWindow.userChanged(get.$activeInventoryTab());
-                
-                let itemParam = URLPARAMS.for_item;
-                
-                if (itemParam !== undefined) {
-                    let [appid, contextid, assetid] = itemParam.split('_');
-                    
-                    unsafeWindow.g_rgCurrentTradeStatus.them.assets.push({
-                        appid,
-                        contextid,
-                        assetid,
-                        amount: 1
-                    });
-                    unsafeWindow.RefreshTradeStatus(unsafeWindow.g_rgCurrentTradeStatus, true);
+                function initTradeOfferWindow() {
+                    tradeOfferWindow.init();
+                    tradeOfferWindow.userChanged(get.$activeInventoryTab());
                 }
                 
                 // hack to fix empty space under inventory
                 // TODO get rid of this if they ever fix it
-                setInterval(() => {
-                    if (page.$inventoryDisplayControls.height() > 50) {
-                        if (page.$inventories.css('marginBottom') === '8px') {
-                            page.$inventories.css('marginBottom', '7px');
-                        } else {
-                            page.$inventories.css('marginBottom', '8px');
-                        }
+                function fixHeight() {
+                    if (page.$inventoryDisplayControls.height() <= 50) return;
+                    
+                    if (page.$inventories.css('marginBottom') === '8px') {
+                        page.$inventories.css('marginBottom', '7px');
+                    } else {
+                        page.$inventories.css('marginBottom', '8px');
                     }
-                }, 500);
+                }
+                
+                function checkURLParam(param) {
+                    if (param === undefined) return;
+                    
+                    let [ appid, contextid, assetid ] = param.split('_');
+                    let item = {
+                        appid,
+                        contextid,
+                        assetid,
+                        amount: 1
+                    };
+                    
+                    unsafeWindow.g_rgCurrentTradeStatus.them.assets.push(item);
+                    unsafeWindow.RefreshTradeStatus(unsafeWindow.g_rgCurrentTradeStatus, true);
+                }
+                
+                checkURLParam(URLPARAMS.for_item);
+                initTradeOfferWindow();
+                setInterval(fixHeight, 500);
             }
             
             addElements();
@@ -1092,28 +1126,34 @@
         }
         
         function modifyLinks() {
-            page.$listing.each(function(index, el) {
+            function getQuery(intent, currencies) {
+                let params = {
+                    listing_intent: intent === 'buy' ? 0 : 1
+                };
+                
+                for (let k in currencies) {
+                    params['listing_currencies_' + k] = currencies[k];
+                }
+                
+                return Object.keys(params).map((k) => {
+                    return k + '=' + params[k];
+                });
+            }
+            
+            page.$listing.each((i, el) => {
                 let $listing = $(el);
                 let $item = $listing.find('.item');
                 let $link = $listing.find('.listing-buttons a.btn:last');
                 let href = $link.attr('href');
                 let price = $item.attr('data-listing_price');
+                let intent = $item.attr('data-listing_intent');
                 let currencies = stringToCurrencies(price);
                 
                 if (currencies) {
-                    let params = {
-                        listing_intent: $item.attr('data-listing_intent') === 'buy' ? 0 : 1
-                    };
+                    let query = getQuery(intent, currencies);
+                    let url = [href, ...query].join('&'); // url with query added
                     
-                    for (let k in currencies) {
-                        params['listing_currencies_' + k] = currencies[k];
-                    }
-                    
-                    let query = Object.keys(params).map((k) => {
-                        return k + '=' + params[k];
-                    });
-                    
-                    $link.attr('href', href + '&' + query.join('&')); // modify href
+                    $link.attr('href', url);
                 }
             });
         }
@@ -1135,10 +1175,9 @@
         const get = {
             $listedItems: () => $('.item:visible').not('.unselected').filter('[data-listing_price]'),
             $firstSelectPage: () => $('.select-page').first(),
-            $sortByPrice: () => $('li[data-value=price]')
+            $sortByPrice: () => $('li[data-value=price]'),
+            $backpackPage: () => $('.backpack-page')
         };
-        let observer = new MutationObserver(refinedValueChanged);
-        let last = {};
         
         function sortByPrice() {
             get.$sortByPrice().trigger('click');
@@ -1150,71 +1189,98 @@
             get.$firstSelectPage().trigger('click');
         }
         
-        function refinedValueChanged() {
-            // get pretty value in keys
-            function getKeyValue(val) {
-                return Math.round(Price.valueInKeys(val) * 10) / 10;
+        // obvserve changes to refined value
+        function observeRefinedValue() {
+            function refinedValueChanged() {
+                // get pretty value in keys
+                function getKeyValue(val) {
+                    return Math.round(Price.valueInKeys(val) * 10) / 10;
+                }
+                
+                /**
+                 * Update the refined field
+                 * @param {Number} keys - Total key value of all selected items
+                 * @param {Number} keysListed - Total listed value in keys of all selected items
+                 * @returns {undefined}
+                 */
+                function update(keys, keysListed) {
+                    let listedValue = `${keysListed} keys listed value`;
+                    
+                    $refined.text(keys);
+                    $refined.attr({
+                        'title': listedValue,
+                        'data-original-title': listedValue
+                    });
+                    // clear title
+                    $refined.attr('title', ''); 
+                    // change the text from "refined" to "keys"
+                    $refined.closest('li').find('small').text('keys'); 
+                }
+                
+                function observeRefChanges() {
+                    // observe changes to ref value
+                    observer.observe(page.$refined[0], {
+                        childList: true,
+                        attributes: true,
+                        subtree: true
+                    });
+                }
+                
+                // get total value of all items in keys by converting ref value
+                function getKeys() {
+                    let text = $refined.text().replace(/,/g, '').trim();
+                    let refined = parseFloat(text);
+                    
+                    return getKeyValue(refined);
+                }
+                
+                function getKeysListed() {
+                    let prices = $listedItems.map((i, el) => {
+                        // get refined value of listing price
+                        return new Price(el.dataset.listing_price).getRefinedValue();
+                    }).get();
+                    let refined = prices.reduce((a, b) => a + b, 0);
+                    
+                    return getKeyValue(refined);
+                }
+                
+                let $refined = page.$refined;
+                let $listedItems = get.$listedItems();
+                let hasChanged = ( 
+                    // ref value has changed
+                    $refined.text() != last.ref ||
+                    // number of listed items selected has changed
+                    $listedItems.length != last.listed 
+                );
+                
+                // ensure the refined value is different from the previous value
+                // this will prevent re-calculation when hovering over ref value
+                if (hasChanged) {
+                    // disconnect so we can modify the object
+                    // without calling this function again
+                    observer.disconnect();
+                    // update the ref value
+                    update(getKeys(), getKeysListed());
+                    // observe changes again
+                    observeRefChanges(); 
+                    
+                    // get values to detect for changes on next check
+                    last = {
+                        ref: $refined.text(),
+                        listed: $listedItems.length
+                    };
+                }
             }
+        
+            let observer = new MutationObserver(refinedValueChanged);
+            let last = {};
             
-            function update() {
-                $refined.text(keys);
-                $refined.attr('title', getKeyValue(totalListedValue) + ' keys listed value');
-                $refined.attr('data-original-title', getKeyValue(totalListedValue) + ' keys listed value');
-                $refined.attr('title', '');
-                $refined.closest('li').find('small').text('keys');
-            }
-            
-            function observeRefChanges() {
-                // observe changes to ref value
-                observer.observe(page.$refined[0], {
-                    childList: true,
-                    attributes: true,
-                    subtree: true
-                });
-            }
-            
-            let $refined = page.$refined;
-            let $listedItems = get.$listedItems();
-            // Price.keyPrice must be defined
-            let noChange = !Price.keyPrice || ( 
-                // ref value is the same
-                $refined.text() == last.ref && 
-                // number of listed items selected is the same
-                $listedItems.length === last.listed 
-            );
-            
-            // this will prevent changes occuring when the values are the same
-            // can also prevent re-calculation when hovering over ref value...
-            if (noChange) return;
-            
-            let text = $refined.text().replace(/,/g, '').trim();
-            let refined = parseFloat(text);
-            let keys = getKeyValue(refined);
-            let prices = $listedItems.map(function(i, el) {
-                // get refined value of listing price
-                return new Price(el.dataset.listing_price).getRefinedValue();
-            }).get();
-            let totalListedValue = prices.reduce(function(a, b) {
-                return a + b;
-            }, 0);
-            
-            // disconnect so we can modify the object without calling this function again
-            observer.disconnect();
-            // update the ref value
-            update();
-            // observe changes again
-            observeRefChanges(); 
-            
-            last.ref = $refined.text();
-            last.listed = $listedItems.length;
+            refinedValueChanged();
         }
         
         function backpackLoaded() {
-            // select items if select param is present
-            if (URLPARAMS.select) {
-                selectItems(URLPARAMS.select.split(','));  // ids are comma seperated
-            }
-            
+            // ids are comma-seperated in select param
+            let select = getIDsFromString(URLPARAMS.select);  
             let session = unsafeWindow.Session;
             let rawValue = session &&
                 session.rawCurrency &&
@@ -1222,8 +1288,23 @@
             
             if (rawValue) {
                 Price.setup(rawValue);
-                refinedValueChanged();
+                observeRefinedValue();
             }
+            
+            if (select) {
+                selectItems(select); // select items if select param is present
+            }
+        }
+        
+        function hideEmptyPages() {
+            get.$backpackPage().each((i, el) => {
+                let $page = $(el);
+                let $items = $page.find('.item-list .item');
+                
+                if ($items.length === 0) {
+                    $page.hide();
+                }
+            });
         }
         
         // select items in inventory by id's
@@ -1243,7 +1324,8 @@
                 $backpack.append($tempPage); // then add the temp page, it will be hidden
                 $spacers.appendTo($tempPage); // remove spacers
                 $unfiltered.appendTo($tempPage); // add the unfiltered items to the temp page
-                updateTotals(); // i mean it works i guess
+                hideEmptyPages(); // hide pages that contain no items
+                updateTotals(); // then update totals
             }
         }
         
