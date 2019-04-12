@@ -49,3 +49,19 @@
 - Cleaned code.
 - Some optimization here and there.
 - Interval period when adding multiple items (from 10 to 20).
+
+## [1.6.2] - 2019-04-12
+### Added
+- Field to add by ID, just press "P" outside of a text field to access it.
+
+### Removed
+- Dependencies.
+
+### Fixed
+- Warnings not working.
+- RegExp in includes.
+
+### Changed
+- Some spacing with elements.
+- More optimizations.
+- Used MutationObserver for checking when backpack on backpack.tf is loaded rather than waitForKeyElements. The function is now called instantly when the backpack is loaded.

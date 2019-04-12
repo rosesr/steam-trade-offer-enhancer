@@ -1,15 +1,13 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
+// @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @description Browser script to enhance Steam trade offers.
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
-// @include     /^https?:\/\/(.*\.)?backpack.tf(:\d+)?\/(stats|classifieds).*/
-// @include     /^https?:\/\/(.*\.)?backpack.tf(:\d+)?\/(?:id|profiles)\/.*/
-// @require     https://gist.github.com/raw/2625891/waitForKeyElements.js
-// @require     https://cdn.rawgit.com/juliarose/c285ec7f12f3f91375abb9b7a02902fe/raw/8124f481e6139609e7e5b96669037dca9dd8eebb/backpacktf_price_tools.js
-// @version     1.6.1
+// @include     /^https?:\/\/(.*\.)?backpack\.tf(:\d+)?\/(stats|classifieds).*/
+// @include     /^https?:\/\/(.*\.)?backpack\.tf(:\d+)?\/(?:id|profiles)\/.*/
+// @version     1.6.2
 // @run-at      document-end
-// @author      HusKy (modified by Julia)
 // ==/UserScript==
 
 (function() {
@@ -25,12 +23,12 @@
             },
             // classified pages
             {
-                pattern: /^https?:\/\/(.*\.)?backpack.tf(:\d+)?\/(stats|classifieds).*/,
+                pattern: /^https?:\/\/(.*\.)?backpack\.tf(:\d+)?\/(stats|classifieds).*/,
                 fn: getClassifieds
             },
             // inventory pages
             {
-                pattern: /^https?:\/\/(.*\.)?backpack.tf(:\d+)?\/(?:id|profiles)\/.*/,
+                pattern: /^https?:\/\/(.*\.)?backpack\.tf(:\d+)?\/(?:id|profiles)\/.*/,
                 fn: getInventory
             }
         ].find((mode) => {
@@ -76,18 +74,56 @@
         return null;
     }
     
+    /**
+     * Convert a currency string to a currency object
+     * @param {String} string - String to parse
+     * @returns {(Object|null)} Object of currencies if string is valid
+     */
+    function stringToCurrencies(string) {
+        let prices = string.split(',');
+        let currencies = {};
+        let currencyNames = {
+            'metal': 'metal',
+            'ref': 'metal',
+            'keys': 'keys',
+            'key': 'keys'
+        };
+        
+        for (let i = 0, n = prices.length; i < n; i++) {
+            // match currencies - the first value is the amount
+            // the second value is the currency name
+            let match = prices[i].trim().match(/^([\d\.]*) (\w*)$/i) || [];
+            let currency = match && currencyNames[match[2]];
+            let value = match && parseFloat(match[1]);
+            
+            if (currency) {
+                currencies[currency] = value;
+            } else {
+                // something isn't right
+                return null;
+            }
+        }
+        
+        if (Object.keys(currencies).length) {
+            return currencies;
+        } else {
+            return null;
+        }
+    }
+    
     function getTradeOfferWindow() {
         const $ = unsafeWindow.jQuery;
         const URLPARAMS = getURLParams();
         const page = {
+            $document: $(document),
             $body: $('body'),
             $yourSlots: $('#your_slots'),
             $theirSlots: $('#their_slots'),
             $inventories: $('#inventories'),
             $inventoryBox: $('#inventory_box'),
+            $inventoryDisplayControls: $('#inventory_displaycontrols'),
             $inventorySelectYour: $('#inventory_select_your_inventory'),
             $inventorySelectTheir: $('#inventory_select_their_inventory'),
-            $inventoryDisplayControls: $('#inventory_displaycontrols'),
             $tradeBoxContents: $('#inventory_box div.trade_box_contents'),
             $appSelectOption: $('.appselect_options .option')
         };
@@ -115,11 +151,11 @@
             
             /**
              * Get summary of items
-             * @param {Object} $items - jQuery object of collection of items
+             * @param {Object} $slots - jQuery object of collection of item slots
              * @param {Boolean} my - Are these my items?
              * @returns {(Object|null)} Summary of items, null if inventory is not properly loaded
              */
-            function evaluateItems($items, my) {
+            function evaluateItems($slots, my) {
                 const WARNINGS = [
                     {
                         name: 'rare TF2 key',
@@ -135,7 +171,7 @@
                             let defindex = appdata && appdata.def_index;
                             
                             return typeof defindex === 'string' &&
-                                item.appid === '440' &&
+                                item.appid === 440 &&
                                 rare440Keys.indexOf(defindex) !== -1;
                         }
                     },
@@ -148,7 +184,7 @@
                             };
                             
                             return typeof descriptions === 'object' &&
-                                item.appid === '440' &&
+                                item.appid === 440 &&
                                 descriptions.some(isUncraftable);
                         }
                     },
@@ -161,27 +197,23 @@
                             };
                             
                             return typeof fraudwarnings === 'object' &&
-                                item.appid === '753' && 
+                                item.appid === 753 && 
                                 fraudwarnings.some(isRestricted);
                         }
                     }
                 ];
-                let $slotInner = $items.find('.slot_inner').filter((i, el) => {
-                    // get all slots that contain contents
-                    return !isEmpty(el.innerHTML.trim());
-                });
+                let $items = $slots.find('div.item');
                 let inventory = getInventory(my);
                 let result = {
-                    total: $slotInner.length,
+                    total: $items.length,
                     item: {},
                     apps: {},
                     warnings: []
                 };
                 
-                $slotInner.each((i, el) => {
+                $items.each((i, el) => {
                     // get the info for the item
-                    let $slot = $(el);
-                    let $item = $slot.find('.item');
+                    let $item = $(el);
                     // array containing item identifiers e.g. ['440', '2', '123']
                     let split = $item.attr('id').replace('item', '').split('_'); 
                     let [appid, contextid, assetid] = split; 
@@ -360,15 +392,15 @@
                     }
                 }
                 
-                let isTF2 = appid === '440';
-                let isCSGO = appid === '730';
-                // "0" = buy order
-                // "1" = sell order
+                let isTF2 = appid == 440;
+                let isCSGO = appid == 730;
+                // 0 = buy order
+                // 1 = sell order
                 let listingIntent = URLPARAMS.listing_intent;
                 // we are selling to a buy order, show button on their inventory
-                let isSelling = !my && listingIntent === '0'; 
+                let isSelling = !my && listingIntent == 0; 
                 // we are buying from a sell order, show button on my inventory
-                let isBuying = my && listingIntent === '1';
+                let isBuying = my && listingIntent == 1;
                 let showKeys = isTF2 || isCSGO;
                 let showMetal = isTF2;
                 let showListingButton = isTF2 && (isBuying || isSelling);
@@ -807,39 +839,42 @@
                         .info { padding: 1px 3px; border-radius: 4px; background-color: #1155FF; border: 1px solid #003399; font-size: 14px; }
                         .summary_item { padding: 3px; margin: 0 2px 2px 0; background-color: #3C352E; background-position: center; background-size: 48px 48px; background-repeat: no-repeat; border: 1px solid; font-size: 16px; width: 48px; height: 48px; display: inline-block; }
                         .summary_badge { padding: 1px 3px; border-radius: 4px; background-color: #0099CC; border: 1px solid #003399; font-size: 12px; }
-                        .filter_full { width: 200px }
+                        .filter_full { width: 200px; }
+                        .filter_number { width: 110px; }
                         .btn_custom { margin-right: 6px; }
                         .btn_keys { background-color: #709D3C; }
                         .btn_metal { background-color: #676767; }
                         .btn_listing { background-color: #2E4766; }
+                        .control_fields { margin-bottom: 8px; }
                     `;
                 }
                 
                 function getControls() {
                     return `
-                        <div class="trade_rule selectableNone"/>
-                        <div class="selectableNone">Add multiple items:</div>
-                        <div class="filter_ctn">
-                            <input id="amount_control" class="filter_search_box" type="number" step="any" min="0" placeholder="amount">
-                            <input id="index_control" class="filter_search_box" type="number" min="0" placeholder="index">
+                        <div id="controls">
+                            <div class="trade_rule selectableNone"/>
+                            <div class="selectableNone">Add multiple items:</div>
+                            <div class="filter_ctn">
+                                <input id="amount_control" class="filter_search_box filter_number" type="number" step="any" min="0" placeholder="amount">
+                                <input id="index_control" class="filter_search_box filter_number" type="number" min="0" placeholder="index">
+                            </div>
+                            <div id="add_btns" class="control_fields">
+                                <button id="btn_additems" type="button" class="btn_items btn_custom btn_add btn_black btn_small"><span>Add</span></button>
+                                <button id="btn_addkeys" type="button" class="btn_keys btn_add btn_custom btn_black btn_small"><span>Add Keys</span></button>
+                                <button id="btn_addmetal" type="button" class="btn_metal btn_add btn_custom btn_black btn_small"><span>Add Metal</span></button>
+                                <button id="btn_addlisting" type="button" class="btn_listing btn_add btn_custom btn_black btn_small"><span>Add Listing</span></button>
+                            </div>
+                            <div id="clear_btns" class="control_fields">
+                                <div id="btn_clearmyitems" type="button" class="btn_custom btn_black btn_small"><span>Clear my items</span></div>
+                                <div id="btn_cleartheiritems" type="button" class="btn_custom btn_black btn_small"><span>Clear their items</span></div>
+                            </div>
                         </div>
-                        <button id="btn_additems" type="button" class="btn_items btn_custom btn_add btn_black btn_small"><span>Add</span></button>
-                        <button id="btn_addkeys" type="button" class="btn_keys btn_add btn_custom btn_black btn_small"><span>Add Keys</span></button>
-                        <button id="btn_addmetal" type="button" class="btn_metal btn_add btn_custom btn_black btn_small"><span>Add Metal</span></button>
-                        <button id="btn_addlisting" type="button" class="btn_listing btn_add btn_custom btn_black btn_small"><span>Add Listing</span></button>
-                        
-                        <br>
-                        <br>
-                        <div id="btn_clearmyitems" type="button" class="btn_custom btn_black btn_small"><span>Clear my items</span></div>
-                        <div id="btn_cleartheiritems" type="button" class="btn_custom btn_black btn_small"><span>Clear their items</span></div>
-                        <br/>
-                        <br/>
                     `;
                 }
                 
                 function getIDControls() {
                     return  `
-                        <div id="id_fields">
+                        <div id="id_fields" class="control_fields" style="display:none;">
                             <div class="filter_ctn">
                                 <div class="filter_control_ctn">
                                     <input id="ids_control" class="filter_search_box filter_full" type="text" placeholder="ids" />
@@ -851,7 +886,6 @@
                                 <div style="clear: both;"></div>
                             </div>
                         </div>
-                        <div class="trade_rule selectableNone"/>
                     `;
                 }
                 
@@ -864,8 +898,7 @@
                     let $tradeBoxParent = $tradeBox.parent();
                     
                     $tradeBox.append(getControls());
-                    // disabled
-                    // $tradeBox.append(getIDControls());
+                    $tradeBox.append(getIDControls());
                     
                     $tradeBox.append('<div class="tradeoffer_items_summary"/>');
                     $tradeBox.appendTo($tradeBoxParent); // re-add to parent
@@ -882,6 +915,10 @@
                     $amount: $('#amount_control'),
                     $index: $('#index_control'),
                     $ids: $('#ids_control')
+                };
+                page.fields = {
+                    $ids: $('#id_fields'),
+                    $controls: $('#controls')
                 };
                 page.btns = {
                     $clearMy: $('#btn_clearmyitems'),
@@ -990,6 +1027,41 @@
                     ];
                 }
                 
+                function toggleIDFields() {
+                    page.fields.$ids.toggle();
+                }
+                
+                // get list of ids of items in trade offer
+                function getIDs() {
+                    let my = get.$activeInventoryTab().attr('id') === 'inventory_select_your_inventory';
+                    let $slots = my ? page.$yourSlots : page.$theirSlots;
+                    let $items = $slots.find('div.item');
+                    
+                    return $items.map((i, el) => {
+                        let $item = $(el);
+                        // array containing item identifiers e.g. ['440', '2', '123']
+                        let split = $item.attr('id').replace('item', '').split('_'); 
+                        let assetid = split[2];
+                        
+                        return assetid;
+                    }).get().filter(a => a);
+                }
+                
+                function keyPressed(e) {
+                    let hotKeys = {
+                        // P
+                        112: toggleIDFields
+                    };
+                    let isTextField = /textarea|select/i.test(e.target.nodeName) || 
+                        [ 'number', 'text' ].indexOf(e.target.type) !== -1;
+                    let code = e.keyCode || e.which;
+                    let method = hotKeys[code];
+                    
+                    if (!isTextField && method) {
+                        method();
+                    }
+                }
+                
                 page.$body.on('dblclick', '#mainContent .trade_area .item', () => {
                     setTimeout(() => {
                         tradeOfferWindow.summarize();
@@ -1034,6 +1106,14 @@
                 
                 page.btns.$addIDs.click(() => {
                     addIDs(page.controls.$ids.val());
+                });
+                
+                page.btns.$getIDs.click(() => {
+                    page.controls.$ids.val(getIDs().join(','));
+                });
+                
+                page.$document.keypress((e) => {
+                    keyPressed(e);
                 });
                 
                 unsafeWindow.addIDs = addIDs; // expose...
@@ -1092,39 +1172,6 @@
             $listing: $('.listing')
         };
         
-        function stringToCurrencies(string) {
-            if (string) {
-                let prices = string.split(',');
-                let currencies = {};
-                let currencyNames = {
-                    'metal': 'metal',
-                    'ref': 'metal',
-                    'keys': 'keys',
-                    'key': 'keys'
-                };
-                
-                for (let i = 0, length = prices.length; i < length; i++) {
-                    // match currencies - the first value is the amount
-                    // the second value is the currency name
-                    let match = prices[i].trim().match(/^([\d\.]*) (\w*)$/i);
-                    let currency = match && currencyNames[match[2]];
-                    
-                    if (currency) {
-                        currencies[currency] = parseFloat(match[1]);
-                    } else {
-                        // something is missing
-                        return null;
-                    }
-                }
-                
-                if (Object.keys(currencies).length) {
-                    return currencies;
-                }
-            }
-            
-            return null;
-        }
-        
         function modifyLinks() {
             function getQuery(intent, currencies) {
                 let params = {
@@ -1173,10 +1220,12 @@
             $refined: $('.refined-value')
         };
         const get = {
-            $listedItems: () => $('.item:visible').not('.unselected').filter('[data-listing_price]'),
-            $firstSelectPage: () => $('.select-page').first(),
+            $listedItems: () => page.$backpack.find('li.item:visible:not(.unselected)[data-listing_price]'),
+            $firstSelectPage: () => page.$backpack.find('span.select-page:first'),
             $sortByPrice: () => $('li[data-value=price]'),
-            $backpackPage: () => $('.backpack-page')
+            $backpackPage: () => page.$backpack.find('div.backpack-page'),
+            $itemPricedInKeys: () => page.$backpack.find('li.item[data-p_bptf*="keys"]:first'),
+            $crateKey: () => page.$backpack.find('.item[data-name="Mann Co. Supply Crate Key"]:first')
         };
         
         function sortByPrice() {
@@ -1190,11 +1239,17 @@
         }
         
         // obvserve changes to refined value
-        function observeRefinedValue() {
+        function observeRefinedValue(keyValue) {
             function refinedValueChanged() {
                 // get pretty value in keys
-                function getKeyValue(val) {
-                    return Math.round(Price.valueInKeys(val) * 10) / 10;
+                function refinedToKeys(value) {
+                    return Math.round((value / keyValue) * 10) / 10;
+                }
+                
+                // get refined value from currencies
+                function getRefinedValue(currencies) {
+                    return (currencies.metal || 0) +
+                        (currencies.keys || 0) * keyValue;
                 }
                 
                 /**
@@ -1231,17 +1286,21 @@
                     let text = $refined.text().replace(/,/g, '').trim();
                     let refined = parseFloat(text);
                     
-                    return getKeyValue(refined);
+                    return refinedToKeys(refined);
                 }
                 
                 function getKeysListed() {
                     let prices = $listedItems.map((i, el) => {
+                        let listingPrice = el.dataset.listing_price;
                         // get refined value of listing price
-                        return new Price(el.dataset.listing_price).getRefinedValue();
+                        let currencies = stringToCurrencies(listingPrice);
+                        let refined = currencies && getRefinedValue(currencies);
+                        
+                        return refined || 0;
                     }).get();
                     let refined = prices.reduce((a, b) => a + b, 0);
                     
-                    return getKeyValue(refined);
+                    return refinedToKeys(refined);
                 }
                 
                 let $refined = page.$refined;
@@ -1271,24 +1330,83 @@
                     };
                 }
             }
-        
+            
             let observer = new MutationObserver(refinedValueChanged);
             let last = {};
             
             refinedValueChanged();
         }
         
+        // get the value of keys
+        function getKeyValue() {
+            /**
+             * Get pricing details from item
+             * @param {Object} item - DOM element of data
+             * @returns {Object} Object containing price details
+             */
+            function parseItem(item) {
+                // parse price string e.g. "1-1.2 keys"
+                function parseString(string) {
+                    let match = string.match(/^([\d\.]*)[\-\u2013]?([\d\.]*)? (\w*)/); 
+                    let currencyNames = {
+                        'metal': 'metal',
+                        'ref': 'metal',
+                        'keys': 'keys',
+                        'key': 'keys'
+                    };
+                    
+                    if (match) {
+                        details.value = parseFloat(match[1]);
+                        details.average = details.value;
+                        details.currency = currencyNames[match[3]]; 
+                        
+                        // if there are 3 match groups, there is a range
+                        if (match[2]) {
+                            details.value_high = parseFloat(match[2]);
+                            details.average = (details.value + details.value_high) / 2;
+                        }
+                    }
+                }
+                
+                let data = item.dataset;
+                let details = {};
+                
+                if (data.price) {
+                    details.raw = parseFloat(data.price);
+                }
+                
+                if (data.p_bptf) {
+                    parseString(data.p_bptf);
+                }
+                
+                return details;
+            }
+            
+            // find item priced in keys
+            let item = get.$itemPricedInKeys()[0];
+            let price = item && parseItem(item);
+            
+            if (price && price.currency === 'keys' && price.average && price.raw) {
+                // to get the value of keys in refined metal...
+                // take the price in metal divided by the price in keys
+                return price.raw / price.average;
+            } else {
+                // set value using the value of a key, if no items in inventory are priced in keys
+                let key = get.$crateKey()[0];
+                let price = key && parseItem(key);
+                
+                return price && price.value;
+            }
+        }
+        
         function backpackLoaded() {
             // ids are comma-seperated in select param
             let select = getIDsFromString(URLPARAMS.select);  
-            let session = unsafeWindow.Session;
-            let rawValue = session &&
-                session.rawCurrency &&
-                session.rawCurrency.value;
+            // get value of keys in refined using rawValue
+            let keyValue = getKeyValue();
             
-            if (rawValue) {
-                Price.setup(rawValue);
-                observeRefinedValue();
+            if (keyValue) {
+                observeRefinedValue(keyValue);
             }
             
             if (select) {
@@ -1329,9 +1447,39 @@
             }
         }
         
+        function waitForBackpack() {
+            function untilBackpackLoaded(callback) {
+                // wait until items are loaded
+                let observer = new MutationObserver((mutations) => {
+                    // if the mutations include an item list, items have been added
+                    let hasItemList = mutations.some((mutation) => {
+                        return mutation.addedNodes &&
+                            mutation.target.className === 'item-list';
+                    });
+                    
+                    if (hasItemList) {
+                        // disconnect observer since the backpack has been loaded
+                        observer.disconnect();
+                        // then callback
+                        return callback();
+                    }
+                });
+                let backpack = document.getElementById('backpack');
+                let settings = {
+                    childList: true,
+                    subtree: true,
+                    attributes: false,
+                    characterData: false
+                };
+                
+                observer.observe(backpack, settings);
+            }
+            
+            untilBackpackLoaded(backpackLoaded);
+        }
+        
         function ready() {
-            // wait until items are loaded, call "backpackLoaded" only once
-            waitForKeyElements('#backpack > .backpack-page:first', backpackLoaded, true);
+            waitForBackpack();
         }
         
         // perform actions
