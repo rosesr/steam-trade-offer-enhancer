@@ -65,3 +65,23 @@
 - Some spacing with elements.
 - More optimizations.
 - Used MutationObserver for checking when backpack on backpack.tf is loaded rather than waitForKeyElements. The function is now called instantly when the backpack is loaded.
+
+## [1.7.0] - 2019-04-15
+### Added
+- Trade offer pages now have summaries. Click the "Summary" button below each trade offer to reveal it.
+- Hotkeys to change between comparisons on backpack.tf pages. Use "W" and "S" keys.
+- Hotkey to copy IDs of selected items on backpack.tf. Use "P" key.
+- Hotkeys to sort items. Use "1", "2", and "3" keys.
+- Cookie settings for ID field visibility.
+- Features from https://github.com/juliarose/steam-trade-offer-links
+
+### Removed
+- Dependencies.
+- Animations in trade offers by over-riding Steam's core javascript.
+
+### Fixed
+- Animations.
+
+### Changed
+- More optimizations.
+- Clear item buttons now remove items instantly.
