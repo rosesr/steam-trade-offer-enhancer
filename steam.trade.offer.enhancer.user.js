@@ -152,15 +152,12 @@
                         }
                     }
                 ];
-                
                 let inventory = getInventory(you);
                 let total = $items.length;
                 let apps = {};
                 let items = {};
                 let warnings = [];
                 let valid = true;
-                
-                console.time('eval');
                 
                 $items.each((i, item) => {
                     // get the info for the item
@@ -196,7 +193,6 @@
                     });
                 });
                 
-                console.timeEnd('eval');
                 if (valid) {
                     return { total, apps, items, warnings };
                 } else {
