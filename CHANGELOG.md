@@ -85,3 +85,7 @@
 ### Changed
 - More optimizations.
 - Clear item buttons now remove items instantly.
+
+## [1.7.1] - 2019-04-17
+### Added
+- Auto-updater.
