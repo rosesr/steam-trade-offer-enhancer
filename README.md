@@ -11,9 +11,9 @@ Fork of [Steam Trade Offer Enhancer by scholtzm](https://github.com/scholtzm/ste
 3. Confirm that you want to install the script.
 4. The script should now be installed and ready to use.
 
-![Screenshot of Steam Trade Offer Links](/images/1.8.0_offers_1.png?raw=true)
-
 ## Features
+
+![Screenshot of Steam Trade Offer Links](/images/1.8.0_offers_1.png?raw=true)
 
 ### Trade Offer Pages
 - Quickly add multiple items. You can specify the amount or starting index for the items you want to add.
