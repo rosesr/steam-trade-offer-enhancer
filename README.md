@@ -2,7 +2,7 @@
 
 Fork of [Steam Trade Offer Enhancer by scholtzm](https://github.com/scholtzm/steam-trade-offer-enhancer) with extra features and performance enhancements. This userscript has many features useful for Team Fortress 2 trading.
 
-![Screenshot of Steam Trade Offer Links](/images/screenshot.png?raw=true)
+![Screenshot of Steam Trade Offer Links](/images/1.8.0_offers_1.png?raw=true)
 
 ## Requirements
 * [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo?hl=en) (Chrome)
