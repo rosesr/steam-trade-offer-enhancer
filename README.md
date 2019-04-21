@@ -6,7 +6,7 @@ Fork of [Steam Trade Offer Enhancer by scholtzm](https://github.com/scholtzm/ste
 * [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo?hl=en) (Chrome)
 
 ## Installation
-1. Ensure that you have either Tampermonkey installed.
+1. Ensure that you have Tampermonkey installed.
 2. Download the script [`steam.trade.offer.enhancer.user.js`](steam.trade.offer.enhancer.user.js?raw=true).
 3. Confirm that you want to install the script.
 4. The script should now be installed and ready to use.
