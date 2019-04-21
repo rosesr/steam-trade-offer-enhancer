@@ -17,7 +17,7 @@ Fork of [Steam Trade Offer Enhancer by scholtzm](https://github.com/scholtzm/ste
 
 ### Trade Offer Pages
 - Quickly add multiple items. You can specify the amount or starting index for the items you want to add.
-- Quickly clear items from from trade offer.
+- Quickly clear items from trade offer.
 - Add items by ID. Use hotkey "P" to show field to add items by ID. You can specify multiple IDs by seperating the IDs by commas (e.g. "1,2,3,4,5").
 - Option to add only keys or metal.
 - Unusual effect images are displayed on items that have Unusual effects.
