@@ -89,3 +89,10 @@
 ## [1.7.1] - 2019-04-17
 ### Added
 - Auto-updater.
+
+## [1.8.0] - 2019-04-21
+### Added
+- Unusual effect images.
+
+### Changed
+- More optimizations.
