@@ -1052,9 +1052,7 @@
             function tradeSlots() {
                 function observeSlots($slots, you) {
                     function summarize() {
-                        console.time('summarize');
                         tradeOfferWindow.summarize(you);
-                        console.timeEnd('summarize');
                         lastSummarized = new Date(); // add date
                     }
                     
