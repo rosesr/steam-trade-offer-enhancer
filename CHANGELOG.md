@@ -96,3 +96,8 @@
 
 ### Changed
 - More optimizations.
+
+## [1.8.1] - 2019-04-22
+### Changed
+- More optimizations.
+- Value in keys on inventories now appears immediately on page load.

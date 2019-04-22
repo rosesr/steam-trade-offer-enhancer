@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.8.0
+// @version     1.8.1
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
@@ -297,8 +297,9 @@
                         $container: page.$theirSummary
                     }
                 }[name];
+                let html = getSummary(config);
                 
-                config.$container.html(getSummary(config));
+                config.$container.html(html);
             }
             
             /**
@@ -683,7 +684,8 @@
                     // offset if index + the amount is greater than the number of items we can pick
                     return length - amount;
                 } else {
-                    return index; // no offset needed
+                    // no offset needed
+                    return index; 
                 }
             }
             
@@ -707,7 +709,7 @@
              */
             function getItemsForMetal(you, amount, index) {
                 // rounds to nearest scrap value
-                function scrapMetal(num) {
+                function toScrap(num) {
                     return Math.floor(Math.round(num * 9) / 9 * 100) / 100;
                 }
                 
@@ -725,8 +727,10 @@
                     // get number of metal to add based on how much more we need to add
                     // as well as the value of the metal we are adding
                     let curValue = values[type];
-                    let amountToAdd = Math.floor(scrapMetal(amount - total) / scrapMetal(curValue));
-                    let items = metal(you, amountToAdd, index, type); // get array of metal
+                    let valueNeeded = amount - total;
+                    let amountToAdd = Math.floor(toScrap(valueNeeded) / toScrap(curValue));
+                    // get array of metal
+                    let items = finder(you, amountToAdd, index, type); 
                     // round each value for clean division
                     let amountAdded = Math.min(
                         amountToAdd,
@@ -735,20 +739,21 @@
                     ); 
                     
                      // add it to the total
-                    total = scrapMetal(total + (amountAdded * curValue));
+                    total = toScrap(total + (amountAdded * curValue));
                     
-                    // splice each individual type of metal
-                    return [...arr, ...items];
+                    // add the new items to the array
+                    return arr.concat(items);
                 }
                 
-                let metal = finders.metal;
+                let finder = finders.metal;
                 let values = {
                     'Refined Metal': 1,
                     'Reclaimed Metal': 1 / 3,
                     'Scrap Metal': 1 / 9
                 };
                 let total = 0; // total to be added to
-                let items = getElementsForItems(Object.keys(values).reduce(getMetal, []));
+                let metal = Object.keys(values).reduce(getMetal, []);
+                let items = getElementsForItems(metal);
                 let satisfied = total === amount;
                 
                 return [items, satisfied];
@@ -1069,7 +1074,7 @@
                             summarize();
                         } else {
                             clearTimeout(timer);
-                            timer = setTimeout(summarize, 200);
+                            timer = setTimeout(summarize, 400);
                         }
                     });
                     let settings = {
@@ -1224,14 +1229,13 @@
                 let $slots = you ? page.$yourSlots : page.$theirSlots;
                 let $items = $slots.find('div.item');
                 
-                return $items.map((i, el) => {
-                    let $item = $(el);
+                return $items.toArray().map((el) => {
                     // array containing item identifiers e.g. ['440', '2', '123']
-                    let split = $item.attr('id').replace('item', '').split('_'); 
+                    let split = el.attr('id').replace('item', '').split('_'); 
                     let assetid = split[2];
                     
                     return assetid;
-                }).get().filter(a => a);
+                });
             }
             
             function keyPressed(e) {
@@ -1406,7 +1410,7 @@
                 let cCurrentItemSlots = elSlotContainer.childElements().length;
                 let cCurrentSlots = cCurrentItemSlots + cCurrencySlotsInUse;
                 let bElementsChanged = cDesiredSlots !== cCurrentSlots;
-                let fnOnAnimComplete = null;
+                let rgElementsToRemove = [];
                 
                 if (cDesiredSlots > cCurrentSlots) {
                     let Create = UW.CreateTradeSlot;
@@ -1417,7 +1421,6 @@
                 } else if (cDesiredSlots < cCurrentSlots) {
                     // going to compact
                     let prefix = bYourSlots ? 'your_slot_' : 'their_slot_';
-                    let rgElementsToRemove = [];
                     let $parent = $slots.parent();
                     
                     for (let i = cDesiredItemSlots; i < cCurrentItemSlots; i++) {
@@ -1427,14 +1430,10 @@
                         $parent.append(element.remove());
                         rgElementsToRemove.push(element);
                     }
-                    
-                    fnOnAnimComplete = function() {
-                        rgElementsToRemove.invoke('remove');
-                    };
                 }
                 
-                if (bElementsChanged && fnOnAnimComplete) {
-                    fnOnAnimComplete();
+                if (bElementsChanged && rgElementsToRemove.length > 0) {
+                    rgElementsToRemove.invoke('remove');
                 }
             };
             // remove multiple items from a trade offer at once
@@ -1690,9 +1689,11 @@
         
         function checkItem(itemEl) {
             function getHover(itemEl) {
+                // classinfo format - "classinfo/440/192234515/3041550843"
                 let classinfo = itemEl.getAttribute('data-economy-item');
-                let [ ,appid, classid, instanceid] = classinfo.split('/');
-                let uri = `economy/itemclasshover/${appid}/${classid}/${instanceid}?content_only=1&l=english`;
+                let [ , appid, classid, instanceid] = classinfo.split('/');
+                let itemStr = [appid, classid, instanceid].join('/');
+                let uri = `economy/itemclasshover/${itemStr}?content_only=1&l=english`;
                 let req = new UW.CDelayedAJAXData(uri, 0);
                 
                 req.QueueAjaxRequestIfNecessary();
@@ -1802,7 +1803,7 @@
             let total = $items.length;
             let items = {};
             
-            $items.each((i, item) => {
+            $items.each((item) => {
                 let img = item.getElementsByTagName('img')[0].getAttribute('src');
                 let quality = item.style.borderColor;
                 let effect = item.getAttribute('data-effect') || 'none';
@@ -1842,8 +1843,8 @@
                     return `<div class="tradeoffer_items_summary">${html}</div>`;
                 }
                 
-                let html = wrap($offer.find('.tradeoffer_items').toArray().reverse().map((el) => {
-                    let $group = $(el);
+                function getItems(ttemsElArr) {
+                    let $group = $(ttemsElArr);
                     let $items= $group.find('div.trade_item');
                     let my = !$group.hasClass('primary');
                     let type = my ? 'My' : 'Their';
@@ -1851,7 +1852,10 @@
                     let html = dumpSummary(type, summary);
                     
                     return html;
-                }).join(''));
+                }
+                
+                let itemsElArr = $offer.find('.tradeoffer_items').toArray().reverse();
+                let html = wrap(itemsElArr.map(getItems).join(''));
                 
                 $offer.append(html);
             }
@@ -1980,8 +1984,8 @@
     }
     
     function getClassifieds() {
-        const page = {
-            $listing: $('.listing')
+        const dom = {
+            listingsElList: document.getElementsByClassName('listing')
         };
         
         function modifyLinks() {
@@ -1999,20 +2003,20 @@
                 });
             }
             
-            page.$listing.each((i, el) => {
-                let $listing = $(el);
-                let $item = $listing.find('.item');
-                let $link = $listing.find('.listing-buttons a.btn:last');
-                let href = $link.attr('href');
-                let price = $item.attr('data-listing_price');
-                let intent = $item.attr('data-listing_intent');
+            Array.from(dom.listingsElList).forEach((listingEl) => {
+                let itemEl = listingEl.getElementsByClassName('item')[0];
+                let offerButtonEl = listingEl.getElementsByClassName('listing-buttons')[0].lastElementChild;
+                let href = offerButtonEl.getAttribute('href');
+                let data = itemEl.dataset;
+                let price = data.listing_price;
+                let intent = data.listing_intent;
                 let currencies = Utils.stringToCurrencies(price);
                 
                 if (currencies) {
                     let query = getQuery(intent, currencies);
                     let url = [href, ...query].join('&'); // url with query added
                     
-                    $link.attr('href', url);
+                    offerButtonEl.setAttribute('href', url);
                 }
             });
         }
@@ -2027,6 +2031,9 @@
     
     function getInventory() {
         const urlParams = Utils.getURLParams();
+        const stored = {
+            key_price: 'getInventory.key_price'
+        };
         const page = {
             $document: $(document),
             $backpack: $('#backpack'),
@@ -2043,20 +2050,20 @@
                 $inventoryCmpTo: () => $('#inventory-cmp-to')
             }
         };
+        // use key value from cache
+        let keyValue = getStored(stored.key_price);
         
         // obvserve changes to refined value
-        function observeRefinedValue(keyValue) {
+        function observeRefinedValue() {
+            // get pretty value in keys
+            function refinedToKeys(value) {
+                return Math.round((value / keyValue) * 10) / 10;
+            }
+            
             function refinedValueChanged() {
-                // get pretty value in keys
-                function refinedToKeys(value) {
-                    return Math.round((value / keyValue) * 10) / 10;
-                }
-                
-                // get refined value from currencies
-                function getRefinedValue(currencies) {
-                    return (currencies.metal || 0) +
-                        (currencies.keys || 0) * keyValue;
-                }
+                // this will generally always be available other than the first load
+                // if it isn't there's nothing we can
+                if (!keyValue) return;
                 
                 /**
                  * Update the refined field
@@ -2064,27 +2071,8 @@
                  * @param {Number} keysListedValue - Total listed value in keys of all selected items
                  * @returns {undefined}
                  */
-                function update(keysValue, keysListedValue) {
-                    let listedValue = `${keysListedValue} keys listed value`;
-                    
+                function update(keysValue) {
                     $refined.text(keysValue);
-                    $refined.attr({
-                        'title': listedValue,
-                        'data-original-title': listedValue
-                    });
-                    // clear title
-                    $refined.attr('title', ''); 
-                    // change the text from "refined" to "keys"
-                    $refined.closest('li').find('small').text('keys'); 
-                }
-                
-                function observeRefChanges() {
-                    // observe changes to ref value
-                    observer.observe(page.$refined[0], {
-                        childList: true,
-                        attributes: true,
-                        subtree: true
-                    });
                 }
                 
                 // get total value of all items in keys by converting ref value
@@ -2095,52 +2083,83 @@
                     return refinedToKeys(refined);
                 }
                 
-                function getKeysListedValue() {
-                    let prices = $listedItems.map((i, el) => {
-                        let listingPrice = el.dataset.listing_price;
-                        // get refined value of listing price
-                        let currencies = Utils.stringToCurrencies(listingPrice);
-                        let refined = currencies && getRefinedValue(currencies);
+                
+                let keysValue = getKeysValue();
+                
+                // disconnect so we can modify the object
+                // without calling this function again
+                observer.disconnect();
+                // update the ref value
+                update(keysValue);
+                // observe changes again
+                observeRefChanges(); 
+            }
+                
+            function observeRefChanges() {
+                let settings = {
+                    childList: true,
+                    subtree: true,
+                    attributes: false,
+                    characterData: false
+                };
+                // observe changes to ref value
+                observer.observe(refinedEl, settings);
+            }
+            
+            function setup() {
+                // keeping this in a mouseover will speed things up a bit
+                // especially if there are many items that are listed in the inventory
+                function updatedListedPrice() {
+                    // this will generally always be available other than the first load
+                    // if it isn't there's nothing we can
+                    if (!keyValue) return;
+                    
+                    // get refined value from currencies
+                    function getRefinedValue(currencies) {
+                        return (currencies.metal || 0) +
+                            (currencies.keys || 0) * keyValue;
+                    }
+                    
+                    function getKeysListedValue() {
+                        let $listedItems = page.get.$listedItems();
+                        let prices = $listedItems.map((i, el) => {
+                            let listingPrice = el.dataset.listing_price;
+                            // get refined value of listing price
+                            let currencies = Utils.stringToCurrencies(listingPrice);
+                            let refined = currencies && getRefinedValue(currencies);
+                            
+                            return refined || 0;
+                        }).get();
+                        let sum = (a, b) => a + b;
+                        let refined = prices.reduce(sum, 0);
                         
-                        return refined || 0;
-                    }).get();
-                    let refined = prices.reduce((a, b) => a + b, 0);
+                        return refinedToKeys(refined);
+                    }
                     
-                    return refinedToKeys(refined);
+                    let listedKeysValue = getKeysListedValue();
+                    let listedValue = `${listedKeysValue} keys listed value`;
+                    
+                    $refined.attr({
+                        'title': listedValue,
+                        'data-original-title': listedValue
+                    });
+                    // clear title
+                    $refined.attr('title', ''); 
                 }
                 
-                let $refined = page.$refined;
-                let $listedItems = page.get.$listedItems();
-                let hasChanged = ( 
-                    // ref value has changed
-                    $refined.text() != last.ref ||
-                    // number of listed items selected has changed
-                    $listedItems.length != last.listed 
-                );
-                
-                // ensure the refined value is different from the previous value
-                // this will prevent re-calculation when hovering over ref value
-                if (hasChanged) {
-                    // disconnect so we can modify the object
-                    // without calling this function again
-                    observer.disconnect();
-                    // update the ref value
-                    update(getKeysValue(), getKeysListedValue());
-                    // observe changes again
-                    observeRefChanges(); 
-                    
-                    // get values to detect changes on next check
-                    last = {
-                        ref: $refined.text(),
-                        listed: $listedItems.length
-                    };
-                }
+                // change the text from "refined" to "keys"
+                page.$refined.closest('li').find('small').text('keys'); 
+                refinedValueChanged();
+                $refined.on('mouseover', () => {
+                    updatedListedPrice();
+                });
             }
             
             let observer = new MutationObserver(refinedValueChanged);
-            let last = {};
+            let $refined = page.$refined;
+            let refinedEl = $refined[0];
             
-            refinedValueChanged();
+            setup();
         }
         
         // get the value of keys
@@ -2205,8 +2224,9 @@
             }
         }
         
-        // select items in inventory by id's
-        function filterItems(ids) {
+        function filterItems($filtered) {
+            if ($filtered.length === 0) return;
+            
             function hideEmptyPages() {
                 page.get.$backpackPage().each((i, el) => {
                     let $page = $(el);
@@ -2226,80 +2246,85 @@
             
             let $backpack = page.$backpack;
             let $items = $backpack.find('li.item:not(.spacer)');
+            let $unfiltered = $items.not($filtered);
+            let $spacers = $backpack.find('li.spacer');
+            // all hidden items are moved to a temp page
+            let $tempPage = $('<div class="temp-page" style="display:none;"/>');
+            
+            sortBy('price'); // sort
+            $backpack.append($tempPage); // then add the temp page, it will be hidden
+            $spacers.appendTo($tempPage); // remove spacers
+            $unfiltered.appendTo($tempPage); // add the unfiltered items to the temp page
+            hideEmptyPages(); // hide pages that contain no items
+            updateTotals(); // then update totals
+        }
+        
+        /**
+         * Select items on page matching IDs
+         * @param {Array} ids - Array of IDs to select
+         * @returns {undefined}
+         */
+        function selectItemsById(ids) {
+            let $backpack = page.$backpack;
+            let $items = $backpack.find('li.item:not(.spacer)');
             let selectors = ids.map(id => `[data-id="${id}"]`);
             let $filtered = $items.filter(selectors.join(',')); // select items
             
-            if ($filtered.length) {
-                let $unfiltered = $items.not($filtered);
-                let $spacers = $backpack.find('li.spacer');
-                // all hidden items are moved to a temp page
-                let $tempPage = $('<div class="temp-page" style="display:none;"/>');
-                
-                sortBy('price'); // sort
-                $backpack.append($tempPage); // then add the temp page, it will be hidden
-                $spacers.appendTo($tempPage); // remove spacers
-                $unfiltered.appendTo($tempPage); // add the unfiltered items to the temp page
-                hideEmptyPages(); // hide pages that contain no items
-                updateTotals(); // then update totals
-            }
+            filterItems($filtered);
         }
         
         function sortBy(key) {
             page.$inventorySortMenu.find(`li[data-value="${key}"]`).trigger('click');
         }
         
-        function copyToClipboard(str) {
-            let el = document.createElement('textarea');
-            el.value = str;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-        }
-        
         function waitForBackpack() {
-            function untilBackpackLoaded(callback) {
-                // wait until items are loaded
-                let observer = new MutationObserver((mutations) => {
-                    // if the mutations include an item list, items have been added
-                    let hasItemList = mutations.some((mutation) => {
-                        return mutation.addedNodes &&
-                            mutation.target.className === 'item-list';
-                    });
-                    
-                    if (hasItemList) {
-                        // disconnect observer since the backpack has been loaded
-                        observer.disconnect();
-                        // then callback
-                        return callback();
-                    }
-                });
-                let backpack = document.getElementById('backpack');
-                let settings = {
-                    childList: true,
-                    subtree: true,
-                    attributes: false,
-                    characterData: false
-                };
-                
-                observer.observe(backpack, settings);
+            function onLoad() {
+                // disconnect observer since the backpack has been loaded
+                observer.disconnect();
+                // then callback
+                backpackLoaded();
             }
             
-            untilBackpackLoaded(backpackLoaded);
+            function handler(mutations) {
+                // if the mutations include an item list, items have been added
+                let hasItemList = mutations.some((mutation) => {
+                    return mutation.addedNodes &&
+                        mutation.target.className === 'item-list';
+                });
+                
+                if (hasItemList) {
+                    // backpack has loaded
+                    onLoad();
+                }
+            }
+            
+            let observer = new MutationObserver(handler);
+            let backpackEl = document.getElementById('backpack');
+            let settings = {
+                childList: true,
+                subtree: true,
+                attributes: false,
+                characterData: false
+            };
+            
+            observer.observe(backpackEl, settings);
         }
         
         function backpackLoaded() {
             // ids are comma-seperated in select param
-            let select = Utils.getIDsFromString(urlParams.select);  
-            // get value of keys in refined using rawValue
-            let keyValue = getKeyValue();
+            let select = Utils.getIDsFromString(urlParams.select);
+            // get key value using items in inventory
+            let bpKeyValue = getKeyValue();
             
-            if (keyValue) {
-                observeRefinedValue(keyValue);
+            if (bpKeyValue) {
+                // set keyValue to price obtained from inventory
+                keyValue = bpKeyValue;
+                // then cache it
+                setStored(stored.key_price, keyValue);
             }
             
             if (select) {
-                filterItems(select); // select items if select param is present
+                selectItemsById(select); // select items if select param is present
             }
             
             bindEvents();
@@ -2362,7 +2387,7 @@
         
         function bindEvents() {
             function copyIDs() {
-                copyToClipboard(getIDs().join(','));
+                Utils.copyToClipboard(getIDs().join(','));
             }
             
             function keyPressed(e) {
@@ -2388,6 +2413,7 @@
         }
         
         function ready() {
+            observeRefinedValue();
             waitForBackpack();
         }
         
@@ -2508,6 +2534,20 @@
             }, {});
         },
         /**
+         * Copy a value to clipboard
+         * @param {String} str - String to copy
+         * @returns {undefined}
+         */
+        copyToClipboard: function(str) {
+            let el = document.createElement('textarea');
+            
+            el.value = str;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+        },
+        /**
          * Convert a currency string to a currency object
          * @param {String} string - String to parse
          * @returns {(Object|null)} Object of currencies if string is valid
@@ -2525,9 +2565,9 @@
             for (let i = 0, n = prices.length; i < n; i++) {
                 // match currencies - the first value is the amount
                 // the second value is the currency name
-                let match = prices[i].trim().match(/^([\d\.]*) (\w*)$/i) || [];
-                let currency = match && currencyNames[match[2]];
-                let value = match && parseFloat(match[1]);
+                let match = prices[i].trim().match(/^([\d\.]*) (\w*)$/i);
+                let currency = currencyNames[match[2]];
+                let value = parseFloat(match[1]);
                 
                 if (currency) {
                     currencies[currency] = value;
@@ -2753,7 +2793,7 @@
                 /**
                  * Get effect name from an item
                  * @param {Object} item - Item from steam
-                 * @returns {(String|null)} Effect name, if available
+                 * @returns {(String|null|undefined)} Effect name, if available
                  */
                 getEffectName: function(item) {
                     let hasDescriptions = typeof item.descriptions === 'object';
@@ -2780,13 +2820,13 @@
     };
     
     // set a stored value
-    function setStored() {
-        GM_setValue(...arguments);
+    function setStored(name, value) {
+        GM_setValue(name, value);
     }
     
     // get a stored value
-    function getStored() {
-        return GM_getValue(...arguments);
+    function getStored(name) {
+        return GM_getValue(name);
     }
     
     // perform actions
