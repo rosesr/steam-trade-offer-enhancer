@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.8.1
+// @version     1.8.2
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
@@ -1634,7 +1634,7 @@
                 function save() {
                     let value = JSON.stringify(values);
                     
-                    if (value.length >= 20000) {
+                    if (value.length >= 10000) {
                         // clear cache when it becomes too big
                         values = {};
                         value = '{}'; 
@@ -2774,7 +2774,12 @@
                  * @returns {undefined}
                  */
                 modifyElement: function(itemEl, value, options = {width: 0}) {
-                    let url = shared.offers.unusual.getEffectURL(value);
+                    let versions = {
+                        // the 188x188 version does not work for purple confetti
+                        7: '380x380'
+                    };
+                    let version = versions[value];
+                    let url = shared.offers.unusual.getEffectURL(value, version);
                     let width = options.width || itemEl.scrollWidth;
                     
                     itemEl.style.backgroundImage = `url('${url}')`;
@@ -2785,10 +2790,11 @@
                 /**
                  * Get URL of image for effect
                  * @param {Number} value - Value of effect
+                 * @param {Number} [version] - Size of image from backpack.tf
                  * @returns {String} URL string
                  */
-                getEffectURL: function(value) {
-                    return `https://backpack.tf/images/440/particles/${value}_188x188.png`;
+                getEffectURL: function(value, version) {
+                    return `https://backpack.tf/images/440/particles/${value}_${version || '188x188'}.png`;
                 },
                 /**
                  * Get effect name from an item

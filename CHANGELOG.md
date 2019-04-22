@@ -101,3 +101,6 @@
 ### Changed
 - More optimizations.
 - Value in keys on inventories now appears immediately on page load.
+
+## [1.8.2] - 2019-04-22
+- Fixed "Purple Confetti" effect not displaying. The image was not available on backpack.tf, so a different version of the image is requested instead.
