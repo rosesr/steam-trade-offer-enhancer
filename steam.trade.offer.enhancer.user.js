@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.8.2
+// @version     1.8.3
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
@@ -162,17 +162,17 @@
                 let warnings = [];
                 let valid = true;
                 
-                $items.each((i, item) => {
+                $items.toArray().forEach((itemEl) => {
                     // array containing item identifiers e.g. ['440', '2', '123']
-                    let split = item.id.replace('item', '').split('_'); 
+                    let split = itemEl.id.replace('item', '').split('_'); 
                     let [appid, contextid, assetid] = split;
-                    let img = item.getElementsByTagName('img')[0].getAttribute('src');
-                    let quality = item.style.borderColor;
-                    let effect = item.getAttribute('data-effect') || 'none';
-                    let inventoryItem = inventory[appid] &&
+                    let img = itemEl.getElementsByTagName('img')[0].getAttribute('src');
+                    let quality = itemEl.style.borderColor;
+                    let effect = itemEl.getAttribute('data-effect') || 'none';
+                    let item = inventory[appid] &&
                         inventory[appid].rgContexts[contextid].inventory.rgInventory[assetid];
                     
-                    if (!inventoryItem) {
+                    if (!item) {
                         // not properly loaded
                         return (valid = false); 
                     }
@@ -189,7 +189,7 @@
                     for (let i = warningIdentifiers.length - 1; i >= 0; i--) {
                         let identifier = warningIdentifiers[i];
                         let addWarning = identifier.appid === appid &&
-                            identifier.check(inventoryItem);
+                            identifier.check(item);
                         
                         if (addWarning) {
                             // add the warning
@@ -1055,19 +1055,19 @@
         // observe changes to dom
         function observe() {
             function tradeSlots() {
-                function observeSlots($slots, you) {
+                function observeSlots(slotsEl, you) {
                     function summarize() {
                         tradeOfferWindow.summarize(you);
                         lastSummarized = new Date(); // add date
                     }
                     
-                    let observer = new MutationObserver(() => {
+                    let observer = new MutationObserver((mutations) => {
                         let canInstantSummarize = (
                             !lastSummarized ||
                             // compare with date when last summarized
                             new Date() - lastSummarized > 200  ||
                             // large summaries take longer to build and can hurt performance
-                            $slots.find('> div').length <= 204
+                            slotsEl.children.length <= 204
                         );
                         
                         if (canInstantSummarize) {
@@ -1085,11 +1085,11 @@
                     let lastSummarized = new Date();
                     let timer;
                     
-                    observer.observe($slots[0], settings);
+                    observer.observe(slotsEl, settings);
                 }
                 
-                observeSlots(page.$yourSlots, true);
-                observeSlots(page.$theirSlots, false);
+                observeSlots(page.$yourSlots[0], true);
+                observeSlots(page.$theirSlots[0], false);
             }
             
             function inventories() {
@@ -1160,7 +1160,7 @@
                         if (currency) {
                             addItems(currency, amount, 0, you, (satisfied) => {
                                 if (satisfied === false) {
-                                    reasons.push(`not enough ${currency}`);
+                                    reasons.push(`not enough ${currency.toLowerCase()}`);
                                 }
                                 
                                 addCurrency(callback); // recurse
@@ -1803,10 +1803,10 @@
             let total = $items.length;
             let items = {};
             
-            $items.each((item) => {
-                let img = item.getElementsByTagName('img')[0].getAttribute('src');
-                let quality = item.style.borderColor;
-                let effect = item.getAttribute('data-effect') || 'none';
+            $items.toArray().forEach((itemEl) => {
+                let img = itemEl.getElementsByTagName('img')[0].getAttribute('src');
+                let quality = itemEl.style.borderColor;
+                let effect = itemEl.getAttribute('data-effect') || 'none';
                 
                 items[img] = items[img] || {};
                 items[img][quality] = (items[img][quality] || {});
