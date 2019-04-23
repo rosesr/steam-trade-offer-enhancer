@@ -11,6 +11,8 @@ Fork of [Steam Trade Offer Enhancer by scholtzm](https://github.com/scholtzm/ste
 3. Confirm that you want to install the script.
 4. The script should now be installed and ready to use.
 
+This will not run in Firefox.
+
 ## Features
 
 ![Screenshot of Steam Trade Offer Links](/images/1.8.0_offers_1.png?raw=true)

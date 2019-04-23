@@ -1061,7 +1061,7 @@
                         lastSummarized = new Date(); // add date
                     }
                     
-                    let observer = new MutationObserver((mutations) => {
+                    let observer = new MutationObserver(() => {
                         let canInstantSummarize = (
                             !lastSummarized ||
                             // compare with date when last summarized
