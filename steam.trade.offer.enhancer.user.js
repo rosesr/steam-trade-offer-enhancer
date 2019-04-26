@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.8.4
+// @version     1.8.5
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
@@ -1952,16 +1952,18 @@
                     }
                     
                     function getSort(key, item) {
-                        if (key !== 'count') {
-                            item = item.props;
-                        }
+                        let index, value;
                         
-                        let value = item[key];
-                        let index = sorts[key].indexOf(value);
-                        
-                        if (index === -1) {
-                            sorts[key].push(value);
+                        if (key === 'count') {
+                            index = -item.count;
+                        } else {
+                            value = item.props[key];
                             index = sorts[key].indexOf(value);
+                            
+                            if (index === -1) {
+                                sorts[key].push(value);
+                                index = sorts[key].indexOf(value);
+                            }
                         }
                         
                         return index;

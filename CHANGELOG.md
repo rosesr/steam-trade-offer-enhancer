@@ -116,3 +116,7 @@
 
 ### Removed
 - "Show summaries" button.
+
+## [1.8.5] - 2019-04-36
+### Fixed
+- Summaries on tradeoffers pages.
