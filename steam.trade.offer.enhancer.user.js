@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.8.5
+// @version     1.8.6
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
@@ -1629,8 +1629,6 @@
     function getTradeOffers() {
         const $ = UW.jQuery;
         const page = {
-            $offers: $('.tradeoffer'),
-            $reportBtn: $('.btn_report'),
             get: {
                 $summaryActions: () => $('.summary_action')
             }
@@ -1908,6 +1906,9 @@
                     // insert html for buttons
                     reportButtonEl.insertAdjacentHTML('beforebegin', html);
                 }
+                
+                // we don't really want it
+                reportButtonEl.remove();
             }
         }
         
@@ -2076,16 +2077,12 @@
         }
         
         function bindEvents() {
-            page.get.$summaryActions().on('click', (e) => {
-                toggleSummary($(e.target).closest('.tradeoffer'));
-            });
+            // nothing
         }
         
         function modifyElements() {
             // modify each trade offer
             Array.from(dom.offers).forEach(checkOffer);
-            // then remove report buttons
-            page.$reportBtn.remove();
         }
         
         function ready() {
