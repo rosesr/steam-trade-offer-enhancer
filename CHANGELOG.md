@@ -109,3 +109,10 @@
 ## [1.8.3] - 2019-04-22
 ### Fixed
 - Summaries on tradeoffers pages.
+
+## [1.8.4] - 2019-04-36
+### Added
+- All trade offers on tradeoffers pages are now summarized and sorted based on quality and count.
+
+### Removed
+- "Show summaries" button.

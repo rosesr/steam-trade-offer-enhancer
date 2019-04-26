@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.8.3
+// @version     1.8.4
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
@@ -231,7 +231,6 @@
                         return `<a title="Open on backpack.tf" href="${url}" target="_blank">${html}</a>`;
                     }
                     
-                    
                     let ids = apps['440'];
                     
                     if (ids) {
@@ -252,9 +251,56 @@
                     return `<div class="warning">${descriptions}</span>`;
                 }
                 
+                /**
+                 * Get header for summary
+                 * @param {String} type - The name of trader e.g. "My" or "Them"
+                 * @param {Number} total - Total number of items in offer
+                 * @returns {String} HTML string
+                 */
+                function getHeader(type, total) {
+                    let itemsStr = total === 1 ? 'item' : 'items';
+                    
+                    return `<div class="summary_header">${type} summary (${total} ${itemsStr}):</div>`;
+                }
+                
+                /**
+                 * Get summary of items in offer
+                 * @param {Object} items - Summary of items from 'evaluateItems' function
+                 * @returns {String} HTML string
+                 */
+                function getItems(items) {
+                    let html = '';
+                    let getEffectURL = shared.offers.unusual.getEffectURL;
+                    
+                    function getItem(img, quality, effect, count) {
+                        let imgs = `url(${img})`;
+                        
+                        if (effect !== 'none') {
+                            imgs += `, url('${getEffectURL(effect)}')`;
+                        }
+                        
+                        let styles = `background-image: ${imgs}; border-color: ${quality};`;
+                        let badge = count > 1 ? `<span class="summary_badge">${count}</span>` : '&nbsp;';
+                        
+                        return `<span class="summary_item" style="${styles}">${badge}</span>`;
+                    }
+                    
+                    // super duper looper
+                    for (let img in items) {
+                        for (let quality in items[img]) {
+                            for (let effect in items[img][quality]) {
+                                let count = items[img][quality][effect];
+                                
+                                html += getItem(img, quality, effect, count);
+                            }
+                        }
+                    }
+                    
+                    return html;
+                }
+                
                 // unpack summary...
                 let {total, apps, items, warnings} = summary;
-                let {getHeader, getItems} = shared.offers.summaries;
                 let steamid = User.strSteamId;
                 
                 // build html piece-by-piece
@@ -835,9 +881,7 @@
                     let elId = `item${appid}_${contextid}_${id}`;
                     let itemEl = document.getElementById(elId);
                     
-                    modifyElement(itemEl, value, {
-                        width: 98
-                    });
+                    modifyElement(itemEl, value);
                 }
             }
             
@@ -915,8 +959,7 @@
                     .summary_badge {
                         padding: 1px 3px;
                         border-radius: 4px;
-                        background-color: #0099CC;
-                        border: 1px solid #003399;
+                        background-color: #209DE6;
                         font-size: 12px;
                     }
                     .items_summary {
@@ -937,12 +980,13 @@
                     .warning {
                         color: #FF4422;
                     }
-                    .trade_area .item.unusual {
-                        background-position: center;
-                    }
                     .trade_area .item.unusual.hover {
                         background-position: center;
                         background-color: #474747 !important;
+                    }
+                    .unusual {
+                        background-position: center;
+                        background-size: 100% 100%;
                     }
                 `);
             }
@@ -1591,6 +1635,9 @@
                 $summaryActions: () => $('.summary_action')
             }
         };
+        const dom = {
+            offers: document.getElementsByClassName('tradeoffer')
+        };
         const stored = {
             effect_cache: 'getTradeOffers.effect_cache'
         };
@@ -1786,11 +1833,20 @@
                     background-repeat: no-repeat;
                 }
                 .summary_badge {
+                    position: absolute;
+                    top: 4px;
+                    left: 4px;
                     padding: 1px 3px;
+                    color: #FFFFFF;
                     border-radius: 4px;
-                    background-color: #0099CC;
-                    border: 1px solid #003399;
-                    font-size: 12px;
+                    background-color: #209DE6;
+                    font-size: 14px;
+                    cursor: default;
+                    font-weight: bold;
+                }
+                .unusual {
+                    background-position: center;
+                    background-size: 100% 100%;
                 }
             `;
         }
@@ -1799,92 +1855,13 @@
             GM_addStyle(styles);
         }
         
-        function evaluateItems($items) {
-            let total = $items.length;
-            let items = {};
-            
-            $items.toArray().forEach((itemEl) => {
-                let img = itemEl.getElementsByTagName('img')[0].getAttribute('src');
-                let quality = itemEl.style.borderColor;
-                let effect = itemEl.getAttribute('data-effect') || 'none';
-                
-                items[img] = items[img] || {};
-                items[img][quality] = (items[img][quality] || {});
-                items[img][quality][effect] = (items[img][quality][effect] || 0) + 1;
-            });
-            
-            return {total, items};
-        }
-        
-        function dumpSummary(type, summary) {
-            if (summary.total === 0) return '';
-            
-            function getSummary() {
-                return getItems(items);
-            }
-            
-            function wrap(html) {
-                return `<div class="items_summary">${html}</div>`;
-            }
-            
-            // unpack summary...
-            let {total, items} = summary;
-            let {getHeader, getItems} = shared.offers.summaries;
-            
-            return wrap([
-                getHeader(type, total),
-                getSummary()
-            ].join(''));
-        }
-        
-        function toggleSummary($offer) {
-            function createSummary() {
-                function wrap(html) {
-                    return `<div class="tradeoffer_items_summary">${html}</div>`;
-                }
-                
-                function getItems(ttemsElArr) {
-                    let $group = $(ttemsElArr);
-                    let $items= $group.find('div.trade_item');
-                    let my = !$group.hasClass('primary');
-                    let type = my ? 'My' : 'Their';
-                    let summary = evaluateItems($items);
-                    let html = dumpSummary(type, summary);
-                    
-                    return html;
-                }
-                
-                let itemsElArr = $offer.find('.tradeoffer_items').toArray().reverse();
-                let html = wrap(itemsElArr.map(getItems).join(''));
-                
-                $offer.append(html);
-            }
-            
-            function hideSummary() {
-                $summary.hide();
-            }
-            
-            function showSummary() {
-                $summary.show();
-            }
-            
-            let $summary = $offer.find('.tradeoffer_items_summary');
-            
-            if ($summary.is(':visible')) {
-                hideSummary();
-            } else if ($summary.length > 0) {
-                showSummary();
-            } else {
-                createSummary();
-            }
-        }
-        
-        function checkOffer(i, el) {
+        function addButtons(offerEl) {
             function getButtons(steamid, personaname) {
                 function makeReplacements(string) {
                     return string.replace('%personaname%', personaname) // replace personaname
                         .replace('%steamid%', steamid); // replace steamid
                 }
+                
                 // generate html for button
                 function getButton(button) {
                     let href = makeReplacements(button.url);
@@ -1916,46 +1893,184 @@
                 return html;
             }
             
-            function getActions() {
-                function getAction(action) {
-                    let classes = [action.className, 'whiteLink'];
-                    
-                    return `<a href="javascript:void(0);" class="${classes.join(' ')}">${action.title}</a> | `;
-                }
-                
-                let actionsToAdd = [
-                    {
-                        title: 'Summary',
-                        className: 'summary_action'
-                    }
-                ];
-                let actions = actionsToAdd.map(getAction);
-                let html = actions.reverse().join('');
-                
-                return html;
-            }
-            
-            let $offer = $(el);
-            let $reportButton = $offer.find('.btn_report');
-            let $actions = $offer.find('.tradeoffer_footer_actions');
+            let reportButtonEl = offerEl.getElementsByClassName('btn_report')[0];
             
             // sent offers will not have a report button - we won't add any buttons to them
-            if ($reportButton.length > 0) {
+            if (reportButtonEl) {
                 // match steamid, personaname
                 let pattern = /ReportTradeScam\( ?\'(\d{17})\', ?"(.*)"\ ?\)/;
-                let match = ($reportButton.attr('onclick') || '').match(pattern);
+                let match = (reportButtonEl.getAttribute('onclick') || '').match(pattern);
                 
                 if (match) {
                     let [ , steamid, personaname] = match;
+                    let html = getButtons(steamid, personaname);
                     
                     // insert html for buttons
-                    $reportButton.after(getButtons(steamid, personaname)); 
+                    reportButtonEl.insertAdjacentHTML('beforebegin', html);
+                }
+            }
+        }
+        
+        function summarize(offerEl) {
+            function summarizeList(itemsEl) {
+                function multipleSameItems() {
+                    let infos = [];
+                    
+                    return itemsArr.some((itemEl) => {
+                        let classinfo = getClassInfo(itemEl);
+                        
+                        if (infos.indexOf(classinfo) !== -1) {
+                            return true;
+                        } else {
+                            infos.push(classinfo);
+                            return false;
+                        }
+                    });
+                }
+                
+                function getClassInfo(itemEl) {
+                    let classinfo = itemEl.getAttribute('data-economy-item');
+                    // I believe item classes always remain static
+                    let translateClass = {
+                        'classinfo/440/339892/11040578': 'classinfo/440/101785959/11040578',
+                        'classinfo/440/339892/11040559': 'classinfo/440/101785959/11040578',
+                        'classinfo/440/107348667/11040578': 'classinfo/440/101785959/11040578'
+                    };
+                    
+                    return translateClass[classinfo] || classinfo;
+                }
+                
+                // get summarized items and sort elements by properties
+                // most of this stuff should be fairly optimized
+                function getItems() {
+                    function getItem(classinfo, itemEl) {
+                        return {
+                            classinfo: classinfo,
+                            app: classinfo.replace('classinfo/', '').split('/')[0],
+                            color: itemEl.style.borderColor
+                        };
+                    }
+                    
+                    function getSort(key, item) {
+                        if (key !== 'count') {
+                            item = item.props;
+                        }
+                        
+                        let value = item[key];
+                        let index = sorts[key].indexOf(value);
+                        
+                        if (index === -1) {
+                            sorts[key].push(value);
+                            index = sorts[key].indexOf(value);
+                        }
+                        
+                        return index;
+                    }
+                    
+                    function buildIndex() {
+                        let items = {};
+                        
+                        itemsArr.forEach((itemEl) => {
+                            let classinfo = getClassInfo(itemEl);
+                            
+                            if (items[classinfo]) {
+                                items[classinfo].count += 1;
+                            } else {
+                                items[classinfo] = {
+                                    el: itemEl,
+                                    count: 1,
+                                    props: getItem(classinfo, itemEl)
+                                };
+                            }
+                        });
+                        
+                        return items;
+                    }
+                    
+                    let sorts = {
+                        app: [
+                            '440', // team fortress 2
+                            '730' // csgo
+                        ],
+                        color: [
+                            'rgb(134, 80, 172)', // unusual
+                            'rgb(170, 0, 0)', // collectors
+                            'rgb(207, 106, 50)', // strange
+                            'rgb(56, 243, 171)', // haunted
+                            'rgb(77, 116, 85)', // genuine
+                            'rgb(71, 98, 145)', // vintage
+                            'rgb(250, 250, 250)', // decorated
+                            'rgb(125, 109, 0)' // unique
+                        ]
+                    };
+                    let items = Object.values(buildIndex());
+                    
+                    return items.sort((a, b) => {
+                        let index = 0;
+                        
+                        // sort by these keys
+                        // break when difference is found
+                        ['app', 'color', 'count'].find((key) => {
+                            let x = getSort(key, a);
+                            let y = getSort(key, b);
+                            
+                            // these are already sorted in the proper direction
+                            if (x > y) {
+                                index = 1;
+                                return true;
+                            } else if (x < y) {
+                                index = -1;
+                                return true;
+                            }
+                        });
+                        
+                        return index;
+                    });
+                }
+                
+                function getFragment() {
+                    let fragment = document.createDocumentFragment();
+                    let clearEl = document.createElement('div');
+                    
+                    getItems().forEach((item) => {
+                        if (item.count > 1) {
+                            // add badge
+                            let badgeEl = document.createElement('span');
+                            
+                            badgeEl.classList.add('summary_badge');
+                            badgeEl.textContent = item.count;
+                            
+                            item.el.appendChild(badgeEl);
+                        }
+                        
+                        fragment.appendChild(item.el);
+                    });
+                    
+                    clearEl.style.clear = 'both';
+                    // add clearfix to end of fragment
+                    fragment.appendChild(clearEl);
+                    
+                    return fragment;
+                }
+                
+                let itemsArr = Array.from(itemsEl.getElementsByClassName('trade_item'));
+                
+                // only modify dom if necessary
+                if (itemsArr.length > 0 && multipleSameItems()) {
+                    // clear html before-hand to reduce dom manipulation
+                    itemsEl.innerHTML = '';
+                    itemsEl.appendChild(getFragment());
                 }
             }
             
-            if ($actions.length > 0) {
-                $actions.prepend(getActions());
-            }
+            let itemsList = offerEl.getElementsByClassName('tradeoffer_item_list');
+            
+            Array.from(itemsList).forEach(summarizeList);
+        }
+        
+        function checkOffer(offerEl) {
+            addButtons(offerEl);
+            summarize(offerEl);
         }
         
         function bindEvents() {
@@ -1966,7 +2081,7 @@
         
         function modifyElements() {
             // modify each trade offer
-            page.$offers.each(checkOffer);
+            Array.from(dom.offers).forEach(checkOffer);
             // then remove report buttons
             page.$reportBtn.remove();
         }
@@ -2588,55 +2703,6 @@
     const shared = {
         // offers shared between offers pages
         offers: {
-            // summary generates
-            summaries: {
-                /**
-                 * Get header for summary
-                 * @param {String} type - The name of trader e.g. "My" or "Them"
-                 * @param {Number} total - Total number of items in offer
-                 * @returns {String} HTML string
-                 */
-                getHeader: function(type, total) {
-                    let itemsStr = total === 1 ? 'item' : 'items';
-                    
-                    return `<div class="summary_header">${type} summary (${total} ${itemsStr}):</div>`;
-                },
-                /**
-                 * Get summary of items in offer
-                 * @param {Object} items - Summary of items from 'evaluateItems' function
-                 * @returns {String} HTML string
-                 */
-                getItems: function(items) {
-                    let html = '';
-                    let getEffectURL = shared.offers.unusual.getEffectURL;
-                    
-                    function getItem(img, quality, effect, count) {
-                        let imgs = `url(${img})`;
-                        
-                        if (effect !== 'none') {
-                            imgs += `, url('${getEffectURL(effect)}')`;
-                        }
-                        
-                        let styles = `background-image: ${imgs}; border-color: ${quality};`;
-                        let badge = `<span class="summary_badge">${count}</span>`;
-                        
-                        return `<span class="summary_item" style="${styles}">${badge}</span>`;
-                    }
-                    
-                    // super duper looper
-                    for (let img in items) {
-                        for (let quality in items[img]) {
-                            for (let effect in items[img][quality]) {
-                                let count = items[img][quality][effect];
-                                
-                                html += getItem(img, quality, effect, count);
-                            }
-                        }
-                    }
-                    
-                    return html;
-                }
-            },
             // unusual helper functions
             unusual: {
                 // all unusual effects as of apr. 20, 19
@@ -2769,21 +2835,17 @@
                  * Include effect image in element
                  * @param {Object} itemEl - DOM element
                  * @param {Object} value - Value for Unusual effect
-                 * @param {Object} [options] - Options
-                 * @param {Number} [options.width] - Width of image
                  * @returns {undefined}
                  */
-                modifyElement: function(itemEl, value, options = {width: 0}) {
+                modifyElement: function(itemEl, value) {
                     let versions = {
                         // the 188x188 version does not work for purple confetti
                         7: '380x380'
                     };
                     let version = versions[value];
                     let url = shared.offers.unusual.getEffectURL(value, version);
-                    let width = options.width || itemEl.scrollWidth;
                     
                     itemEl.style.backgroundImage = `url('${url}')`;
-                    itemEl.style.backgroundSize = [width, width].map(a => a + 'px').join(' ');
                     itemEl.setAttribute('data-effect', value);
                     itemEl.classList.add('unusual');
                 },
