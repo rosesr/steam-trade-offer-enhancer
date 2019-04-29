@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.8.7
+// @version     1.8.8
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
@@ -1196,13 +1196,14 @@
                         return currencies[currency] > 0;
                     });
                     let reasons = [];
+                    let index = parseInt(page.controls.$index.val()) || 0;
                     
                     function addCurrency(callback) {
                         let currency = names.shift(); // get first name and remove it from array
                         let amount = currencies[currency];
                         
                         if (currency) {
-                            addItems(currency, amount, 0, you, (satisfied) => {
+                            addItems(currency, amount, index, you, (satisfied) => {
                                 if (satisfied === false) {
                                     reasons.push(`not enough ${currency.toLowerCase()}`);
                                 }

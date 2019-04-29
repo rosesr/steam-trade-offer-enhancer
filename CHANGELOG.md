@@ -128,3 +128,7 @@
 ## [1.8.7] - 2019-04-27
 ### Fixed
 - Effect images in summaries on trade offer pages not using the full width.
+
+## [1.8.8] - 2019-04-29
+### Fixed
+- Index on "Add listing".
