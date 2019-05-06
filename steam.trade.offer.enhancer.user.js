@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.8.8
+// @version     1.8.9
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
@@ -749,14 +749,15 @@
             /**
              * Pick metal from items based on value in refined metal
              * @param {Boolean} you - Add to your side?
-             * @param {Number} amount - Value to make
+             * @param {Number} amount - Value to make in metal (e.g. 13.33)
              * @param {Number} index - Index to add at
              * @returns {Array} First value is an array of items, second is whether the amount was satisfied
              */
             function getItemsForMetal(you, amount, index) {
-                // rounds to nearest scrap value
+                // converts a metal value to the equivalent number of scrap emtals
+                // values are rounded
                 function toScrap(num) {
-                    return Math.floor(Math.round(num * 9) / 9 * 100) / 100;
+                    return Math.round(num / (1 / 9));
                 }
                 
                 // value was met
@@ -774,10 +775,9 @@
                     // as well as the value of the metal we are adding
                     let curValue = values[type];
                     let valueNeeded = amount - total;
-                    let amountToAdd = Math.floor(toScrap(valueNeeded) / toScrap(curValue));
+                    let amountToAdd = Math.floor(valueNeeded / curValue);
                     // get array of metal
                     let items = finder(you, amountToAdd, index, type); 
-                    // round each value for clean division
                     let amountAdded = Math.min(
                         amountToAdd,
                         // there isn't quite enough there...
@@ -785,22 +785,26 @@
                     ); 
                     
                      // add it to the total
-                    total = toScrap(total + (amountAdded * curValue));
+                    total = total + (amountAdded * curValue);
                     
                     // add the new items to the array
                     return arr.concat(items);
                 }
                 
+                // convert the amount to the number of scrap metal
+                amount = toScrap(amount);
+                
                 let finder = finders.metal;
-                let values = {
-                    'Refined Metal': 1,
-                    'Reclaimed Metal': 1 / 3,
-                    'Scrap Metal': 1 / 9
-                };
                 let total = 0; // total to be added to
+                // the value in scrap metal of each type of metal
+                let values = {
+                    'Refined Metal': 9,
+                    'Reclaimed Metal': 3,
+                    'Scrap Metal': 1
+                };
                 let metal = Object.keys(values).reduce(getMetal, []);
                 let items = getElementsForItems(metal);
-                let satisfied = total === amount;
+                let satisfied = valueMet();
                 
                 return [items, satisfied];
             }
@@ -2198,7 +2202,6 @@
                     return refinedToKeys(refined);
                 }
                 
-                
                 let keysValue = getKeysValue();
                 
                 // disconnect so we can modify the object
@@ -2277,7 +2280,8 @@
             setup();
         }
         
-        // get the value of keys
+        // get the value of keys in metal
+        // this should be very approximate. but close enough
         function getKeyValue() {
             /**
              * Get pricing details from item
@@ -2308,6 +2312,21 @@
                     }
                 }
                 
+                function getRefinedValue(allStr) {
+                    let match = allStr.replace(/\,/g, '').match(/(\d+\.?\d*) ref/);
+                    let value = match && parseFloat(match[1]);
+                    let rawValue = details.raw;
+                    
+                    // the raw value has extra precision but includes the value of paint and strange parts
+                    //  if it is close to the value of the price items, we can use the raw value instead
+                    // whuch us nore precise
+                    if (value && rawValue && value.toFixed(2) === rawValue.toFixed(2)) {
+                        return rawValue;
+                    } else {
+                        return value || rawValue;
+                    }
+                }
+                
                 let data = item.dataset;
                 let details = {};
                 
@@ -2319,6 +2338,8 @@
                     parseString(data.p_bptf);
                 }
                 
+                details.refined = getRefinedValue(data.p_bptf_all || '');
+                
                 return details;
             }
             
@@ -2326,16 +2347,16 @@
             let item = page.get.$itemPricedInKeys()[0];
             let price = item && parseItem(item);
             
-            if (price && price.currency === 'keys' && price.average && price.raw) {
+            if (price && price.currency === 'keys' && price.average && price.refined) {
                 // to get the value of keys in refined metal...
                 // take the price in metal divided by the price in keys
-                return price.raw / price.average;
+                return price.refined / price.average;
             } else {
                 // set value using the value of a key, if no items in inventory are priced in keys
                 let key = page.get.$crateKey()[0];
                 let price = key && parseItem(key);
                 
-                return price && price.value;
+                return price && price.refined;
             }
         }
         
@@ -2433,6 +2454,7 @@
             
             if (bpKeyValue) {
                 // set keyValue to price obtained from inventory
+                // this should be very approximate. but close enough
                 keyValue = bpKeyValue;
                 // then cache it
                 setStored(stored.key_price, keyValue);

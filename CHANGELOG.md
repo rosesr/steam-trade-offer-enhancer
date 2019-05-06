@@ -132,3 +132,7 @@
 ## [1.8.8] - 2019-04-29
 ### Fixed
 - Index on "Add listing".
+
+## [1.8.9] - 2019-05-06
+### Fixed
+- Issue with attaining key price from some inventories resulting in values to be off.
