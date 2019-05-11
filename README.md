@@ -28,10 +28,11 @@ This will not run in Firefox.
 
 ### Trade Offers Pages
 - Quick links to backpack.tf and Rep.tf pages on offers.
-- Summary for trade offers. Use the "Summary" button below the trade offer to reveal.
+- Summary for trade offers.
 - Unusual effect images are displayed on Unusual items that have Unusual effects (minor, but Community Sparkle on Lugermorphs is not available).
 
 ### backpack.tf Inventory Pages
+- Total values are displayed in keys rather than refined.
 - Auto-select items on load by ID from `select` URL parameter.
 - Easily change between days on comparisons. Use "W" and "S" keys.
 - Easily change inventory sorting. Use "1", "2", and "3" keys.
