@@ -527,8 +527,8 @@
             /**
              * Register an event
              * @param {String} steamid - steamid for user
-             * @param {(String|Function)} appid - Attach to app, or function to be called regardless of app
-             * @param {(String|undefined)} [contextid] - Attach to context in app
+             * @param {(String|Function)} appid - appid of event, or app-agnostic function to be called
+             * @param {(String|undefined)} [contextid] - contextid of app
              * @param {(Function|undefined)} [fn] - Function to call when inventory is loaded
              * @returns {undefined}
              * @memberOf inventoryManager
@@ -1506,7 +1506,7 @@
                         return grouped;
                     }
                     
-                    // iteration dom elements and collect rgItems from items
+                    // iterate over dom elements and collect rgItems from items
                     function iterItems(items) {
                         let rgItems = [];
                         let revertItem = UW.RevertItem;
@@ -1592,13 +1592,6 @@
                 if (page.$inventoryDisplayControls.height() >= 50) return;
                 
                 page.$inventories.css('marginBottom', '8px');
-                /*
-                if (page.$inventories.css('marginBottom') === '8px') {
-                    page.$inventories.css('marginBottom', '7px');
-                } else {
-                    page.$inventories.css('marginBottom', '8px');
-                }
-                */
             }
             
             tradeOfferWindow.userChanged(page.get.$activeInventoryTab());
@@ -1634,9 +1627,6 @@
     function getTradeOffers() {
         const $ = UW.jQuery;
         const page = {
-            get: {
-                $summaryActions: () => $('.summary_action')
-            }
         };
         const dom = {
             offers: document.getElementsByClassName('tradeoffer')
@@ -1861,8 +1851,8 @@
         function addButtons(offerEl) {
             function getButtons(steamid, personaname) {
                 function makeReplacements(string) {
-                    return string.replace('%personaname%', personaname) // replace personaname
-                        .replace('%steamid%', steamid); // replace steamid
+                    // replace personaname and steamid
+                    return string.replace('%personaname%', personaname).replace('%steamid%', steamid); 
                 }
                 
                 // generate html for button
@@ -1997,18 +1987,28 @@
                     
                     let sorts = {
                         app: [
-                            '440', // team fortress 2
-                            '730' // csgo
+                            // team fortress 2
+                            '440',
+                            // csgo
+                            '730'
                         ],
                         color: [
-                            'rgb(134, 80, 172)', // unusual
-                            'rgb(170, 0, 0)', // collectors
-                            'rgb(207, 106, 50)', // strange
-                            'rgb(56, 243, 171)', // haunted
-                            'rgb(77, 116, 85)', // genuine
-                            'rgb(71, 98, 145)', // vintage
-                            'rgb(250, 250, 250)', // decorated
-                            'rgb(125, 109, 0)' // unique
+                            // unusual
+                            'rgb(134, 80, 172)',
+                            // collectors
+                            'rgb(170, 0, 0)',
+                            // strange
+                            'rgb(207, 106, 50)',
+                            // haunted
+                            'rgb(56, 243, 171)',
+                            // genuine
+                            'rgb(77, 116, 85)',
+                            // vintage
+                            'rgb(71, 98, 145)',
+                            // decorated
+                            'rgb(250, 250, 250)',
+                            // unique
+                            'rgb(125, 109, 0)'
                         ]
                     };
                     let items = Object.values(buildIndex());
@@ -2133,7 +2133,8 @@
                 
                 if (currencies) {
                     let query = getQuery(intent, currencies);
-                    let url = [href, ...query].join('&'); // url with query added
+                    // url with query added
+                    let url = [href, ...query].join('&');
                     
                     offerButtonEl.setAttribute('href', url);
                 }
@@ -2318,8 +2319,8 @@
                     let rawValue = details.raw;
                     
                     // the raw value has extra precision but includes the value of paint and strange parts
-                    //  if it is close to the value of the price items, we can use the raw value instead
-                    // whuch us nore precise
+                    // if it is close to the value of the price items,
+                    // we can use the raw value instead which is more precise
                     if (value && rawValue && value.toFixed(2) === rawValue.toFixed(2)) {
                         return rawValue;
                     } else {
@@ -2387,12 +2388,18 @@
             // all hidden items are moved to a temp page
             let $tempPage = $('<div class="temp-page" style="display:none;"/>');
             
-            sortBy('price'); // sort
-            $backpack.append($tempPage); // then add the temp page, it will be hidden
-            $spacers.appendTo($tempPage); // remove spacers
-            $unfiltered.appendTo($tempPage); // add the unfiltered items to the temp page
-            hideEmptyPages(); // hide pages that contain no items
-            updateTotals(); // then update totals
+            // sort
+            sortBy('price');
+            // then add the temp page, it will be hidden
+            $backpack.append($tempPage);
+            // remove spacers
+            $spacers.appendTo($tempPage);
+            // add the unfiltered items to the temp page
+            $unfiltered.appendTo($tempPage);
+            // hide pages that contain no items
+            hideEmptyPages();
+            // then update totals
+            updateTotals();
         }
         
         /**
@@ -2404,7 +2411,8 @@
             let $backpack = page.$backpack;
             let $items = $backpack.find('li.item:not(.spacer)');
             let selectors = ids.map(id => `[data-id="${id}"]`);
-            let $filtered = $items.filter(selectors.join(',')); // select items
+            // select items
+            let $filtered = $items.filter(selectors.join(','));
             
             filterItems($filtered);
         }
