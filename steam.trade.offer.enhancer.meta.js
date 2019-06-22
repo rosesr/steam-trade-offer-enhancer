@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.8.9
+// @version     1.9.0
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/

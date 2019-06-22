@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.8.9
+// @version     1.9.0
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
@@ -1280,7 +1280,7 @@
                 
                 return $items.toArray().map((el) => {
                     // array containing item identifiers e.g. ['440', '2', '123']
-                    let split = el.attr('id').replace('item', '').split('_'); 
+                    let split = (el.id || '').replace('item', '').split('_'); 
                     let assetid = split[2];
                     
                     return assetid;
