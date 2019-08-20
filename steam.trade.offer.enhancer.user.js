@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.9.0
+// @version     1.9.1
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
@@ -728,7 +728,7 @@
                     return Math.max(0, length - (amount + index + 1));
                 } else if (index + amount >= length) {
                     // offset if index + the amount is greater than the number of items we can pick
-                    return length - amount;
+                    return Math.max(0, length - amount);
                 } else {
                     // no offset needed
                     return index; 
@@ -854,6 +854,7 @@
                         // select all visible items from active inventory
                         let found = page.get.$inventory().find('div.item').filter(isVisible).toArray();
                         
+                        // select in reverse
                         if (index < 0) {
                             index = (index + 1) * -1;
                             found = found.reverse();

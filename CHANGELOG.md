@@ -136,3 +136,11 @@
 ## [1.8.9] - 2019-05-06
 ### Fixed
 - Issue with attaining key price from some inventories resulting in values to be off.
+
+## [1.9.0] - 2019-06-22
+### Fixed
+- Code consistency.
+
+## [1.9.1] - 2019-08-19
+### Fixed
+- A bug when adding filtered items starting at the wrong index.
