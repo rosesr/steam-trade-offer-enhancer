@@ -144,3 +144,7 @@
 ## [1.9.1] - 2019-08-19
 ### Fixed
 - A bug when adding filtered items starting at the wrong index.
+
+## [1.9.2] - 2019-09-01
+### Added
+- A button to decline all active trade offers.
