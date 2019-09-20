@@ -148,3 +148,7 @@
 ## [1.9.2] - 2019-09-01
 ### Added
 - A button to decline all active trade offers.
+
+## [1.9.3] - 2019-09-20
+### Fixed
+- Bug with #inventory_displaycontrols height on Firefox on trade offer window pages.

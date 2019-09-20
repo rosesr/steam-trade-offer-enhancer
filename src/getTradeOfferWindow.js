@@ -941,6 +941,8 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
             </div>
         `;
         const $tradeBox = page.$tradeBoxContents;
+        // clearfix to add after inventories to fix height bug in firefox
+        const $clear = $('<div style="clear: both"/>');
         const html = [
             controlsHTML,
             itemSummaryHTML
@@ -948,6 +950,9 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
         
         // add it
         $tradeBox.append(html);
+        
+        // add the clear after inventories
+        $clear.insertAfter(page.$inventories);
         
         // add newly created elements to page object
         page.$offerSummary = $('#tradeoffer_items_summary');
@@ -1480,11 +1485,9 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
         // hack to fix empty space under inventory
         // TODO get rid of this if they ever fix it
         function fixHeight() {
-            if (page.$inventoryDisplayControls.height() >= 50) {
+            if (page.$inventoryDisplayControls.height() <= 50) {
                 return;
             }
-            
-            page.$inventories.css('marginBottom', '8px');
         }
         
         tradeOfferWindow.userChanged(page.get.$activeInventoryTab());
@@ -1499,8 +1502,7 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
             page.btns.$listing.addClass(isSelling ? 'selling' : 'buying');
         }
         
-        page.$inventories.css('marginBottom', '8px');
-        setInterval(fixHeight, 500);
+        // setInterval(fixHeight, 500);
     }
     
     // perform actions
