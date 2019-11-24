@@ -1,8 +1,9 @@
+// currenct version number of script
+const VERSION = '1.9.4';
 // our window object for accessing globals
 const WINDOW = unsafeWindow;
 // dependencies to provide to each page script    
 const $ = WINDOW.jQuery;
-
 /**
  * Utility functions
  * @namespace Utils
@@ -170,9 +171,9 @@ const shared = {
     offers: {
         // unusual helper functions
         unusual: {
-            // all unusual effects as of apr. 20, 19
+            // all unusual effects as of nov 23, 19
+            // missing 2019 taunt effects since they are not availabe on backpack.tf yet
             effectsMap: {
-                'Community Sparkle': 4,
                 'Green Confetti': 6,
                 'Purple Confetti': 7,
                 'Haunted Ghosts': 8,
@@ -294,8 +295,28 @@ const shared = {
                 'Poisonous Bubbles of Regret': 3019,
                 'Roaring Rockets': 3020,
                 'Spooky Night': 3021,
-                'Ominous Night': 3022
-            },
+                'Ominous Night': 3022,
+                'Fifth Dimension': 122,
+                'Vicious Vortex': 123,
+                'Menacing Miasma': 124,
+                'Abyssal Aura': 125,
+                'Wicked Wood': 126,
+                'Ghastly Grove': 127,
+                'Mystical Medley': 128,
+                'Ethereal Essence': 129,
+                'Twisted Radiance': 130,
+                'Violet Vortex': 131,
+                'Verdant Vortex': 132,
+                'Valiant Vortex': 133,
+                'Bewitched': 3023,
+                'Accursed': 3024,
+                'Enchanted': 3025,
+                'Static Mist': 3026,
+                'Eerie Lightning': 3027,
+                'Terrifying Thunder': 3028,
+                'Jarate Shock': 3029,
+                'Nether Void': 3030
+              },
             /**
              * Include effect image in element
              * @param {Object} itemEl - DOM element
@@ -365,6 +386,7 @@ function getStored(name) {
 }
 
 return {
+    VERSION,
     WINDOW,
     $,
     Utils,

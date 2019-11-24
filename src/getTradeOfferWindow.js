@@ -199,27 +199,26 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
                 // helper for getting effecting url
                 const {getEffectURL} = shared.offers.unusual;
                 const ids = apps['440'];
-                const getItem = (img, quality, effect, count) => {
-                    let imgs = [`url(${img})`];
-                    
-                    if (effect !== 'none') {
-                        imgs.push(`url('${getEffectURL(effect)}')`);
-                    }
-                    
-                    const styles = `background-image: ${imgs.join(', ')}; border-color: ${quality};`;
-                    const badge = count > 1 ? `<span class="summary_badge">${count}</span>` : '&nbsp;';
-                    
-                    return `<span class="summary_item" style="${styles}">${badge}</span>`;
-                };
                 let html = '';
                 
                 // super duper looper
                 for (let img in items) {
                     for (let quality in items[img]) {
                         for (let effect in items[img][quality]) {
+                            // generate the html for this item
                             let count = items[img][quality][effect];
+                            let imgs = [`url(${img})`];
                             
-                            html += getItem(img, quality, effect, count);
+                            if (effect !== 'none') {
+                                imgs.push(`url('${getEffectURL(effect)}')`);
+                            }
+                            
+                            const styles = `background-image: ${imgs.join(', ')}; border-color: ${quality};`;
+                            const badge = count > 1 ? `<span class="summary_badge">${count}</span>` : '&nbsp;';
+                            const itemHTML = `<span class="summary_item" style="${styles}">${badge}</span>`;
+                            
+                            // add the html for this item
+                            html += itemHTML;
                         }
                     }
                 }

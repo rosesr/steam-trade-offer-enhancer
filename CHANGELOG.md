@@ -152,3 +152,7 @@
 ## [1.9.3] - 2019-09-20
 ### Fixed
 - Bug with #inventory_displaycontrols height on Firefox on trade offer window pages.
+
+## [1.9.4] - 2019-11-23
+### Added
+- Halloween 2019 hat effect images

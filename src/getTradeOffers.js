@@ -1,9 +1,9 @@
-function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
+function getTradeOffers({$, VERSION, WINDOW, shared, getStored, setStored}) {
     const dom = {
         offers: document.getElementsByClassName('tradeoffer')
     };
     const stored = {
-        effect_cache: 'getTradeOffers.effect_cache'
+        effect_cache: VERSION + '.getTradeOffers.effect_cache'
     };
     const unusual = (function() {
         // take helper methods/objects
@@ -18,7 +18,7 @@ function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
                 return modifyElement(itemEl, value);
             },
             /**
-             * Add an image using an item's object.
+             * Adds an image using an item's object.
              * @param {Object} itemEl - DOM element of item.
              * @param {Object} item - Item object.
              * @returns {undefined}
@@ -291,6 +291,7 @@ function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
                     
                     return items;
                 };
+                // some parameters to sort by
                 const sorts = {
                     app: [
                         // team fortress 2
@@ -323,15 +324,21 @@ function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
                     
                     // sort by these keys
                     // break when difference is found
-                    ['app', 'color', 'count'].find((key) => {
-                        const x = getSort(key, a);
-                        const y = getSort(key, b);
+                    [
+                        'app',
+                        'color',
+                        'count'
+                    ].find((key) => {
+                        // get the sort value for a and b
+                        const [sortA, sortB] = [a, b].map((value) => {
+                            return getSort(key, value);
+                        });
                         
                         // these are already sorted in the proper direction
-                        if (x > y) {
+                        if (sortA > sortB) {
                             index = 1;
                             return true;
-                        } else if (x < y) {
+                        } else if (sortA < sortB) {
                             index = -1;
                             return true;
                         }
@@ -343,7 +350,10 @@ function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
                 return sorted;
             }
             
-            function getFragment() {
+            const itemsArr = Array.from(itemsEl.getElementsByClassName('trade_item'));
+            
+            // only modify dom if necessary
+            if (itemsArr.length > 0 && multipleSameItems()) {
                 const fragment = document.createDocumentFragment();
                 const clearEl = document.createElement('div');
                 const items = getItems();
@@ -365,17 +375,9 @@ function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
                 clearEl.style.clear = 'both';
                 // add clearfix to end of fragment
                 fragment.appendChild(clearEl);
-                
-                return fragment;
-            }
-            
-            const itemsArr = Array.from(itemsEl.getElementsByClassName('trade_item'));
-            
-            // only modify dom if necessary
-            if (itemsArr.length > 0 && multipleSameItems()) {
                 // clear html before-hand to reduce dom manipulation
                 itemsEl.innerHTML = '';
-                itemsEl.appendChild(getFragment());
+                itemsEl.appendChild(fragment);
             }
         }
         

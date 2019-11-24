@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.9.3
+// @version     1.9.4
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
@@ -222,27 +222,26 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
                 // helper for getting effecting url
                 const {getEffectURL} = shared.offers.unusual;
                 const ids = apps['440'];
-                const getItem = (img, quality, effect, count) => {
-                    let imgs = [`url(${img})`];
-                    
-                    if (effect !== 'none') {
-                        imgs.push(`url('${getEffectURL(effect)}')`);
-                    }
-                    
-                    const styles = `background-image: ${imgs.join(', ')}; border-color: ${quality};`;
-                    const badge = count > 1 ? `<span class="summary_badge">${count}</span>` : '&nbsp;';
-                    
-                    return `<span class="summary_item" style="${styles}">${badge}</span>`;
-                };
                 let html = '';
                 
                 // super duper looper
                 for (let img in items) {
                     for (let quality in items[img]) {
                         for (let effect in items[img][quality]) {
+                            // generate the html for this item
                             let count = items[img][quality][effect];
+                            let imgs = [`url(${img})`];
                             
-                            html += getItem(img, quality, effect, count);
+                            if (effect !== 'none') {
+                                imgs.push(`url('${getEffectURL(effect)}')`);
+                            }
+                            
+                            const styles = `background-image: ${imgs.join(', ')}; border-color: ${quality};`;
+                            const badge = count > 1 ? `<span class="summary_badge">${count}</span>` : '&nbsp;';
+                            const itemHTML = `<span class="summary_item" style="${styles}">${badge}</span>`;
+                            
+                            // add the html for this item
+                            html += itemHTML;
                         }
                     }
                 }
@@ -1537,12 +1536,12 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
     overrides();
 }
 
-function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
+function getTradeOffers({$, VERSION, WINDOW, shared, getStored, setStored}) {
     const dom = {
         offers: document.getElementsByClassName('tradeoffer')
     };
     const stored = {
-        effect_cache: 'getTradeOffers.effect_cache'
+        effect_cache: VERSION + '.getTradeOffers.effect_cache'
     };
     const unusual = (function() {
         // take helper methods/objects
@@ -1557,7 +1556,7 @@ function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
                 return modifyElement(itemEl, value);
             },
             /**
-             * Add an image using an item's object.
+             * Adds an image using an item's object.
              * @param {Object} itemEl - DOM element of item.
              * @param {Object} item - Item object.
              * @returns {undefined}
@@ -1830,6 +1829,7 @@ function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
                     
                     return items;
                 };
+                // some parameters to sort by
                 const sorts = {
                     app: [
                         // team fortress 2
@@ -1862,15 +1862,21 @@ function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
                     
                     // sort by these keys
                     // break when difference is found
-                    ['app', 'color', 'count'].find((key) => {
-                        const x = getSort(key, a);
-                        const y = getSort(key, b);
+                    [
+                        'app',
+                        'color',
+                        'count'
+                    ].find((key) => {
+                        // get the sort value for a and b
+                        const [sortA, sortB] = [a, b].map((value) => {
+                            return getSort(key, value);
+                        });
                         
                         // these are already sorted in the proper direction
-                        if (x > y) {
+                        if (sortA > sortB) {
                             index = 1;
                             return true;
-                        } else if (x < y) {
+                        } else if (sortA < sortB) {
                             index = -1;
                             return true;
                         }
@@ -1882,7 +1888,10 @@ function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
                 return sorted;
             }
             
-            function getFragment() {
+            const itemsArr = Array.from(itemsEl.getElementsByClassName('trade_item'));
+            
+            // only modify dom if necessary
+            if (itemsArr.length > 0 && multipleSameItems()) {
                 const fragment = document.createDocumentFragment();
                 const clearEl = document.createElement('div');
                 const items = getItems();
@@ -1904,17 +1913,9 @@ function getTradeOffers({$, WINDOW, shared, getStored, setStored}) {
                 clearEl.style.clear = 'both';
                 // add clearfix to end of fragment
                 fragment.appendChild(clearEl);
-                
-                return fragment;
-            }
-            
-            const itemsArr = Array.from(itemsEl.getElementsByClassName('trade_item'));
-            
-            // only modify dom if necessary
-            if (itemsArr.length > 0 && multipleSameItems()) {
                 // clear html before-hand to reduce dom manipulation
                 itemsEl.innerHTML = '';
-                itemsEl.appendChild(getFragment());
+                itemsEl.appendChild(fragment);
             }
         }
         
@@ -2463,11 +2464,12 @@ function getInventory({$, Utils, getStored, setStored}) {
 // run the page scripts
 (function() {
     const DEPS = (function() {
+        // currenct version number of script
+        const VERSION = '1.9.4';
         // our window object for accessing globals
         const WINDOW = unsafeWindow;
         // dependencies to provide to each page script    
         const $ = WINDOW.jQuery;
-        
         /**
          * Utility functions
          * @namespace Utils
@@ -2635,9 +2637,9 @@ function getInventory({$, Utils, getStored, setStored}) {
             offers: {
                 // unusual helper functions
                 unusual: {
-                    // all unusual effects as of apr. 20, 19
+                    // all unusual effects as of nov 23, 19
+                    // missing 2019 taunt effects since they are not availabe on backpack.tf yet
                     effectsMap: {
-                        'Community Sparkle': 4,
                         'Green Confetti': 6,
                         'Purple Confetti': 7,
                         'Haunted Ghosts': 8,
@@ -2759,8 +2761,28 @@ function getInventory({$, Utils, getStored, setStored}) {
                         'Poisonous Bubbles of Regret': 3019,
                         'Roaring Rockets': 3020,
                         'Spooky Night': 3021,
-                        'Ominous Night': 3022
-                    },
+                        'Ominous Night': 3022,
+                        'Fifth Dimension': 122,
+                        'Vicious Vortex': 123,
+                        'Menacing Miasma': 124,
+                        'Abyssal Aura': 125,
+                        'Wicked Wood': 126,
+                        'Ghastly Grove': 127,
+                        'Mystical Medley': 128,
+                        'Ethereal Essence': 129,
+                        'Twisted Radiance': 130,
+                        'Violet Vortex': 131,
+                        'Verdant Vortex': 132,
+                        'Valiant Vortex': 133,
+                        'Bewitched': 3023,
+                        'Accursed': 3024,
+                        'Enchanted': 3025,
+                        'Static Mist': 3026,
+                        'Eerie Lightning': 3027,
+                        'Terrifying Thunder': 3028,
+                        'Jarate Shock': 3029,
+                        'Nether Void': 3030
+                      },
                     /**
                      * Include effect image in element
                      * @param {Object} itemEl - DOM element
@@ -2830,6 +2852,7 @@ function getInventory({$, Utils, getStored, setStored}) {
         }
         
         return {
+            VERSION,
             WINDOW,
             $,
             Utils,
