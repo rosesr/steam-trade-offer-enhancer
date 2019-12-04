@@ -1,4 +1,5 @@
-function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
+// @include /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
+function({WINDOW, $, Utils, shared, getStored, setStored}) {
     const urlParams = Utils.getURLParams();
     // these are never re-assigned in steam's source code
     // only updated
@@ -141,7 +142,10 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
                 
                 if (!item) {
                     // not properly loaded
-                    return (valid = false); 
+                    valid = false;
+                    
+                    // stop loop
+                    return false; 
                 }
                 
                 if (!apps[appid]) {
@@ -177,9 +181,9 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
                     items,
                     warnings
                 };
-            } else {
-                return null;
             }
+            
+            return null;
         }
         
         /**
@@ -206,8 +210,8 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
                     for (let quality in items[img]) {
                         for (let effect in items[img][quality]) {
                             // generate the html for this item
-                            let count = items[img][quality][effect];
-                            let imgs = [`url(${img})`];
+                            const count = items[img][quality][effect];
+                            const imgs = [`url(${img})`];
                             
                             if (effect !== 'none') {
                                 imgs.push(`url('${getEffectURL(effect)}')`);
@@ -228,10 +232,11 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
                     // return summary items with backpack.tf link wrapped around 
                     const url = `https://backpack.tf/profiles/${steamid}?select=${ids.join(',')}`;
                     
-                    return `<a title="Open on backpack.tf" href="${url}" target="_blank">${html}</a>`;
-                } else {
-                    return html;
+                    // wrap the html
+                    html = `<a title="Open on backpack.tf" href="${url}" target="_blank">${html}</a>`;
                 }
+                
+                return html;
             }
             
             function getWarnings() {
@@ -277,25 +282,27 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
          * @memberOf tradeOfferWindow
          */
         function summarize(you) {
-            const name = you ? 'you' : 'them';
-            const config = {
-                you: {
-                    you: true,
+            let config;
+            
+            // define config based on user
+            if (you) {
+                config = {
                     name: 'My',
                     user: UserYou,
                     $slots: page.$yourSlots,
                     $container: page.$yourSummary
-                },
-                them: {
-                    you: false,
+                };
+            } else {
+                config = {
                     name: 'Their',
                     user: UserThem,
                     $slots: page.$theirSlots,
                     $container: page.$theirSummary
-                }
-            }[name];
+                };
+            }
+            
             const $items = config.$slots.find('div.item');
-            const summary = evaluateItems($items, config.you);
+            const summary = evaluateItems($items, you);
             const html = dumpSummary(config.name, summary, config.user);
             
             config.$container.html(html);
@@ -448,7 +455,11 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
         }
         
         return {
-            summarize, addItems, clear, updateDisplay, userChanged
+            summarize,
+            addItems,
+            clear,
+            updateDisplay,
+            userChanged
         };
     }());
     /**
@@ -457,8 +468,8 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
      * @namespace inventoryManager
      */
     const inventoryManager = (function() {
-        let inventories = {};
-        let users = {};
+        const inventories = {};
+        const users = {};
         
         users[STEAMID] = [];
         users[PARTNER_STEAMID] = [];
@@ -474,7 +485,7 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
          * @memberOf inventoryManager
          */
         function call(steamid, appid, contextid) {
-            let actions = [
+            const actions = [
                 ...users[steamid],
                 ...((inventories[steamid][appid] && inventories[steamid][appid][contextid]) || [])
             ];
@@ -513,7 +524,8 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
         }
         
         return {
-            register, call
+            register,
+            call
         };
     }());
     /**
@@ -621,9 +633,9 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
                     
                     return arr;
                 }, []);
+                const ids = Object.keys(inventory);
                 let items = [];
                 let total = [];
-                let ids = Object.keys(inventory);
                 let currentIndex = 0;
                 
                 if (index < 0) {
@@ -675,7 +687,10 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
                 return;
             } else if (you === null) {
                 // get items for both users
-                return Utils.flatten([true, false].map(getItems));
+                return Utils.flatten([
+                    true,
+                    false
+                ].map(getItems));
             } else {
                 // get items for user based on whether 'you' is truthy or falsy
                 return getItems(you);
@@ -707,8 +722,8 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
             if (items.length === 0) return [];
             
             // get element id for each item
-            let ids = items.map(item => `item${item.appid}_${item.contextid}_${item.id}`);
-            let elements = ids.map(id => document.getElementById(id)).map(a => a);
+            const ids = items.map(item => `item${item.appid}_${item.contextid}_${item.id}`);
+            const elements = ids.map(id => document.getElementById(id)).map(a => a);
             
             return elements;
         }
@@ -740,12 +755,12 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
                 
                 // get number of metal to add based on how much more we need to add
                 // as well as the value of the metal we are adding
-                let curValue = values[type];
-                let valueNeeded = amount - total;
-                let amountToAdd = Math.floor(valueNeeded / curValue);
+                const curValue = values[type];
+                const valueNeeded = amount - total;
+                const amountToAdd = Math.floor(valueNeeded / curValue);
                 // get array of metal
-                let items = finder(you, amountToAdd, index, type); 
-                let amountAdded = Math.min(
+                const items = finder(you, amountToAdd, index, type); 
+                const amountAdded = Math.min(
                     amountToAdd,
                     // there isn't quite enough there...
                     items.length
@@ -761,19 +776,23 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
             // convert the amount to the number of scrap metal
             amount = toScrap(amount);
             
-            let finder = finders.metal;
-            let total = 0; // total to be added to
+            // total to be added to
+            let total = 0;
+            const finder = finders.metal;
             // the value in scrap metal of each type of metal
-            let values = {
+            const values = {
                 'Refined Metal': 9,
                 'Reclaimed Metal': 3,
                 'Scrap Metal': 1
             };
-            let metal = Object.keys(values).reduce(getMetal, []);
-            let items = getElementsForItems(metal);
-            let satisfied = valueMet();
+            const metal = Object.keys(values).reduce(getMetal, []);
+            const items = getElementsForItems(metal);
+            const satisfied = valueMet();
             
-            return [items, satisfied];
+            return {
+                items,
+                satisfied
+            };
         }
         
         /**
@@ -788,27 +807,39 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
             return {
                 // get keys
                 'KEYS': function() {
-                    let found = pickItems(you, amount, index, identifiers.isKey);
-                    let items = getElementsForItems(found);
-                    let satisfied = amount === items.length;
+                    const found = pickItems(you, amount, index, identifiers.isKey);
+                    const items = getElementsForItems(found);
+                    const satisfied = amount === items.length;
                     
-                    return [items, satisfied];
+                    return {
+                        items,
+                        satisfied
+                    };
                 },
                 // get amount of metal (keys, ref, scrap);
                 'METAL': function() {
-                    let [items, satisfied] = getItemsForMetal(you, amount, index);
+                    const {
+                        items,
+                        satisfied
+                    } = getItemsForMetal(you, amount, index);
                     
-                    return [items, satisfied];
+                    return {
+                        items,
+                        satisfied
+                    };
                 },
                 // get items by id
                 'ID': function() {
                     // list of id's is passed through index
-                    let ids = index; 
-                    let found = finders.id(ids);
-                    let items = getElementsForItems(found);
-                    let satisfied = ids.length === items.length;
+                    const ids = index; 
+                    const found = finders.id(ids);
+                    const items = getElementsForItems(found);
+                    const satisfied = ids.length === items.length;
                     
-                    return [items, satisfied];
+                    return {
+                        items,
+                        satisfied
+                    };
                 },
                 // get items displayed in the inventory
                 'ITEMS': function() {
@@ -827,11 +858,14 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
                         found = found.reverse();
                     }
                     
-                    let offset = offsetIndex(index, amount, found.length);
-                    let items = found.splice(offset, amount);
-                    let satisfied = amount === items.length;
+                    const offset = offsetIndex(index, amount, found.length);
+                    const items = found.splice(offset, amount);
+                    const satisfied = amount === items.length;
                     
-                    return [items, satisfied];
+                    return {
+                        items,
+                        satisfied
+                    };
                 }
             }[mode]();
         }
@@ -845,22 +879,22 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
             getEffectName
         } = shared.offers.unusual;
         
-        function addEffectImage(item, effectName) {
-            let value = effectsMap[effectName];
-            
-            if (value) {
-                let {appid, contextid, id} = item;
-                let elId = `item${appid}_${contextid}_${id}`;
-                let itemEl = document.getElementById(elId);
-                
-                modifyElement(itemEl, value);
-            }
-        }
-        
         function addImagesToInventory(inventory) {
+            function addEffectImage(item, effectName) {
+                const value = effectsMap[effectName];
+                
+                if (value) {
+                    const {appid, contextid, id} = item;
+                    const elId = `item${appid}_${contextid}_${id}`;
+                    const itemEl = document.getElementById(elId);
+                    
+                    modifyElement(itemEl, value);
+                }
+            }
+            
             for (let assetid in inventory) {
-                let item = inventory[assetid];
-                let effectName = getEffectName(item);
+                const item = inventory[assetid];
+                const effectName = getEffectName(item);
                 
                 if (effectName) {
                     addEffectImage(item, effectName);
@@ -883,8 +917,9 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
         };
     }());
     
+    // perform actions
     // add elements to page
-    function addElements() {
+    (function addElements() {
         const controlsHTML = `
             <div id="controls">
                 <div class="trade_rule selectableNone"/>
@@ -977,83 +1012,18 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
             $addIDs: $('#btn_addids'),
             $getIDs: $('#btn_getids')
         };
-    }
-    
-    // observe changes to dom
-    function observe() {
-        function tradeSlots() {
-            function observeSlots(slotsEl, you) {
-                function summarize() {
-                    tradeOfferWindow.summarize(you);
-                    lastSummarized = new Date(); // add date
-                }
-                
-                let observer = new MutationObserver(() => {
-                    let canInstantSummarize = (
-                        !lastSummarized ||
-                        // compare with date when last summarized
-                        new Date() - lastSummarized > 200  ||
-                        // large summaries take longer to build and can hurt performance
-                        slotsEl.children.length <= 204
-                    );
-                    
-                    if (canInstantSummarize) {
-                        summarize();
-                    } else {
-                        clearTimeout(timer);
-                        timer = setTimeout(summarize, 400);
-                    }
-                });
-                let settings = {
-                    childList: true,
-                    characterData: false,
-                    subtree: true
-                };
-                let lastSummarized = new Date();
-                let timer;
-                
-                observer.observe(slotsEl, settings);
-            }
-            
-            observeSlots(page.$yourSlots[0], true);
-            observeSlots(page.$theirSlots[0], false);
-        }
-        
-        function inventories() {
-            let observer = new MutationObserver((mutations) => {
-                if (!mutations[0].addedNodes) return;
-                
-                let mutation = mutations[0];
-                let inventory = mutation.addedNodes[0];
-                let split = inventory.id.replace('inventory_', '').split('_');
-                let [steamid, appid, contextid] = split;
-                
-                inventoryManager.call(steamid, appid, contextid);
-            });
-            let settings = {
-                childList: true,
-                characterData: false,
-                subtree: false
-            };
-            
-            observer.observe(page.$inventories[0], settings);
-        }
-        
-        tradeSlots();
-        inventories();
-    }
-    
-    function bindEvents() {
+    }());
+    // binds events to elements
+    (function bindEvents() {
         // the user changed from one app to another
         function appChanged(app) {
-            let $app = $(app);
-            let id = $app.attr('id');
-            let match = id.match(/appselect_option_(you|them)_(\d+)_(\d+)/);
+            const $app = $(app);
+            const id = $app.attr('id');
+            const match = id.match(/appselect_option_(you|them)_(\d+)_(\d+)/);
             
             if (match) {
-                let you = match[1] === 'you';
-                let appid = match[2];
-                let contextid = match[3];
+                const you = match[1] === 'you';
+                const [ , , appid, contextid] = match;
                 
                 tradeOfferWindow.updateDisplay(you, appid, contextid);
             }
@@ -1075,11 +1045,11 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
              * @returns {undefined}
              */
             function addCurrencies(you, currencies, callback) {
-                let names = Object.keys(currencies).filter((currency) => {
+                const names = Object.keys(currencies).filter((currency) => {
                     return currencies[currency] > 0;
                 });
-                let reasons = [];
-                let index = parseInt(page.controls.$index.val()) || 0;
+                const reasons = [];
+                const index = parseInt(page.controls.$index.val()) || 0;
                 
                 function addCurrency(callback) {
                     let currency = names.shift(); // get first name and remove it from array
@@ -1103,9 +1073,9 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
             
             // 0 = buy order
             // 1 = sell order
-            let listingIntent = urlParams.listing_intent;
+            const listingIntent = urlParams.listing_intent;
             // we are buying, add items from our inventory
-            let you = listingIntent == 1;
+            const you = listingIntent == 1;
             
             addCurrencies(you, {
                 KEYS: parseInt(urlParams.listing_currencies_keys) || 0,
@@ -1124,7 +1094,7 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
          * @returns {undefined}
          */
         function addIDs(idsStr) {
-            let ids = Utils.getIDsFromString(idsStr);
+            const ids = Utils.getIDsFromString(idsStr);
             
             if (ids) {
                 addItems('ID', 0, ids, null);
@@ -1144,23 +1114,23 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
         }
         
         function toggleIDFields() {
-            let $controls = page.fields.$ids.toggle();
-            let isVisible  = $controls.is(':visible') ? 1 : 0;
+            const $controls = page.fields.$ids.toggle();
+            const isVisible  = $controls.is(':visible') ? 1 : 0;
             
             setStored(stored.id_visible, isVisible);
         }
         
         // get list of ids of items in trade offer
         function getIDs() {
-            let $inventoryTab = page.get.$activeInventoryTab();
-            let you = $inventoryTab.attr('id') === 'inventory_select_your_inventory';
-            let $slots = you ? page.$yourSlots : page.$theirSlots;
-            let $items = $slots.find('div.item');
+            const $inventoryTab = page.get.$activeInventoryTab();
+            const you = $inventoryTab.attr('id') === 'inventory_select_your_inventory';
+            const $slots = you ? page.$yourSlots : page.$theirSlots;
+            const $items = $slots.find('div.item');
             
             return $items.toArray().map((el) => {
                 // array containing item identifiers e.g. ['440', '2', '123']
-                let split = (el.id || '').replace('item', '').split('_'); 
-                let assetid = split[2];
+                const split = (el.id || '').replace('item', '').split('_'); 
+                const assetid = split[2];
                 
                 return assetid;
             });
@@ -1173,16 +1143,26 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
             });
         }
         
-        function addItems(mode = 'ITEMS', amount = 1, index = 0, you = true, callback = function() {}) {
-            let canModify = (
+        function addItems(
+            mode = 'ITEMS',
+            amount = 1,
+            index = 0,
+            you = true,
+            callback = function() {}
+        ) {
+            const canModify = Boolean(
                 // an inventory is not selected
                 (/(\d+)_(\d+)$/.test(page.get.$inventory().attr('id'))) ||
                 // the offer cannot be modified
                 page.get.$modifyTradeOffer().length === 0
             );
             
+            // we can modify the items in the offer based on the current window state
             if (canModify) {
-                let [items, satisfied] = collectItems(...arguments);
+                const {
+                    items,
+                    satisfied
+                } = collectItems(...arguments);
                 
                 tradeOfferWindow.addItems(items, () => {
                     return callback(satisfied);
@@ -1228,10 +1208,9 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
         page.$document.on('keypress', (e) => {
             keyPressed(e);
         });
-    }
-    
+    }());
     // register inventory events
-    function bindInventoryEvents() {
+    (function bindInventoryEvents() {
         // this will force an inventory to load
         function forceInventory(appid, contextid) {
             TRADE_STATUS.them.assets.push({
@@ -1324,9 +1303,83 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
         [STEAMID, PARTNER_STEAMID].forEach((steamid) => {
             inventoryManager.register(steamid, '440', '2', addEffectImages);
         });
-    }
-    
-    function overrides() {
+    }());
+    // observe changes to dom
+    (function observe() {
+        // observe changes to trade slots
+        (function() {
+            function observeSlots(slotsEl, you) {
+                function summarize() {
+                    tradeOfferWindow.summarize(you);
+                    lastSummarized = new Date(); // add date
+                }
+                
+                const observer = new MutationObserver(() => {
+                    const canInstantSummarize = Boolean(
+                        !lastSummarized ||
+                        // compare with date when last summarized
+                        new Date() - lastSummarized > 200  ||
+                        // large summaries take longer to build and can hurt performance
+                        slotsEl.children.length <= 204
+                    );
+                    
+                    if (canInstantSummarize) {
+                        summarize();
+                    } else {
+                        clearTimeout(timer);
+                        timer = setTimeout(summarize, 400);
+                    }
+                });
+                let lastSummarized = new Date();
+                let timer;
+                
+                observer.observe(slotsEl, {
+                    childList: true,
+                    characterData: false,
+                    subtree: true
+                });
+            }
+            
+            observeSlots(page.$yourSlots[0], true);
+            observeSlots(page.$theirSlots[0], false);
+        }());
+        
+        // observe inventory changes
+        (function() {
+            const observer = new MutationObserver((mutations) => {
+                if (!mutations[0].addedNodes) return;
+                
+                const mutation = mutations[0];
+                const inventory = mutation.addedNodes[0];
+                const split = inventory.id.replace('inventory_', '').split('_');
+                const [steamid, appid, contextid] = split;
+                
+                inventoryManager.call(steamid, appid, contextid);
+            });
+            
+            observer.observe(page.$inventories[0], {
+                childList: true,
+                characterData: false,
+                subtree: false
+            });
+        }());
+    }());
+    // configure state
+    (function configure() {
+        tradeOfferWindow.userChanged(page.get.$activeInventoryTab());
+        
+        if (getStored(stored.id_visible) == 1) {
+            page.fields.$ids.show();
+        }
+        
+        if (urlParams.listing_intent !== undefined) {
+            const isSelling = urlParams.listing_intent == 0;
+            
+            page.btns.$listing.addClass(isSelling ? 'selling' : 'buying');
+        }
+    }());
+    // override page functions
+    (function overrides() {
         // basically removes animation due to bugginess
         // also it's a bit faster
         WINDOW.EnsureSufficientTradeSlots = function(bYourSlots, cSlotsInUse, cCurrencySlotsInUse) {
@@ -1478,37 +1531,5 @@ function getTradeOfferWindow({WINDOW, $, Utils, shared, getStored, setStored}) {
                 manager.UpdateTradeStatus();
             }
         };
-    }
-    
-    function configure() {
-        // hack to fix empty space under inventory
-        // TODO get rid of this if they ever fix it
-        function fixHeight() {
-            if (page.$inventoryDisplayControls.height() <= 50) {
-                return;
-            }
-        }
-        
-        tradeOfferWindow.userChanged(page.get.$activeInventoryTab());
-        
-        if (getStored(stored.id_visible) == 1) {
-            page.fields.$ids.show();
-        }
-        
-        if (urlParams.listing_intent !== undefined) {
-            const isSelling = urlParams.listing_intent == 0;
-            
-            page.btns.$listing.addClass(isSelling ? 'selling' : 'buying');
-        }
-        
-        // setInterval(fixHeight, 500);
-    }
-    
-    // perform actions
-    addElements();
-    bindEvents();
-    bindInventoryEvents();
-    observe();
-    configure();
-    overrides();
+    }());
 }

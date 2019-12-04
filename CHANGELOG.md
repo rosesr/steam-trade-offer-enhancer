@@ -155,4 +155,8 @@
 
 ## [1.9.4] - 2019-11-23
 ### Added
-- Halloween 2019 hat effect images
+- Halloween 2019 hat effect images.
+
+## [1.9.5] - 2019-12-04
+### Added
+- Effect images on inventory pages.

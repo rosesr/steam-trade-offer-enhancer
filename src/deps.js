@@ -1,5 +1,3 @@
-// currenct version number of script
-const VERSION = '1.9.4';
 // our window object for accessing globals
 const WINDOW = unsafeWindow;
 // dependencies to provide to each page script    
@@ -316,11 +314,11 @@ const shared = {
                 'Terrifying Thunder': 3028,
                 'Jarate Shock': 3029,
                 'Nether Void': 3030
-              },
+            },
             /**
-             * Include effect image in element
-             * @param {Object} itemEl - DOM element
-             * @param {Object} value - Value for Unusual effect
+             * Includes effect image in element.
+             * @param {Object} itemEl - DOM element.
+             * @param {Object} value - Value for Unusual effect.
              * @returns {undefined}
              */
             modifyElement: function(itemEl, value) {
@@ -336,18 +334,26 @@ const shared = {
                 itemEl.classList.add('unusual');
             },
             /**
-             * Get URL of image for effect
-             * @param {Number} value - Value of effect
-             * @param {Number} [version] - Size of image from backpack.tf
+             * Gets the effect value from an effect name.
+             * @param {String} effectName - Effect name.
+             * @returns {(String|undefined)} Effect value, if available.
+             */
+            getEffectValue: function(effectName) {
+                return shared.offers.unusual.effectsMap[effectName];
+            },
+            /**
+             * Gets URL of image for effect.
+             * @param {Number} value - Value of effect.
+             * @param {Number} [version] - Size of image from backpack.tf.
              * @returns {String} URL string
              */
             getEffectURL: function(value, version) {
                 return `https://backpack.tf/images/440/particles/${value}_${version || '188x188'}.png`;
             },
             /**
-             * Get effect name from an item
-             * @param {Object} item - Item from steam
-             * @returns {(String|null|undefined)} Effect name, if available
+             * Gets the effect name from an item.
+             * @param {Object} item - Item from steam.
+             * @returns {(String|null|undefined)} Effect name, if available.
              */
             getEffectName: function(item) {
                 const hasDescriptions = typeof item.descriptions === 'object';
@@ -386,7 +392,6 @@ function getStored(name) {
 }
 
 return {
-    VERSION,
     WINDOW,
     $,
     Utils,
