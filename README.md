@@ -33,7 +33,7 @@ Fork of [Steam Trade Offer Enhancer by scholtzm](https://github.com/scholtzm/ste
 ### ```https://steamcommunity.com/profiles/<steamid>/inventory```<br/>```https://steamcommunity.com/id/<id>/inventory```
 - Unusual effect images are displayed on Unusual items that have Unusual effects.
 
-### ``https://backpack.tf/profiles/<steamid>```
+### ```https://backpack.tf/profiles/<steamid>```
 - Total values are displayed in keys rather than refined.
 - Auto-select items on load by ID from `select` URL parameter.
 - Easily change between days on comparisons. Use "W" and "S" keys.
