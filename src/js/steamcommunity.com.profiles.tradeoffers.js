@@ -148,7 +148,7 @@ function({$, VERSION, WINDOW, shared, getStored, setStored}) {
                 wondrous conversation. I didn't want the night to end, but It wouldn't
                 be the last time I would see him.
                 */
-                const somethingRandom = (arr) => arr[Math.round(Math.random() * arr.length)];
+                const somethingRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
                 const goodEffects = [ 74, 75, 76, 78, 79, 81 ];
                 const aGoodEffect = somethingRandom(goodEffects);
                 

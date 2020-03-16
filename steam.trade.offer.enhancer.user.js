@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.9.6
+// @version     1.9.7
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -848,7 +848,7 @@
                             wondrous conversation. I didn't want the night to end, but It wouldn't
                             be the last time I would see him.
                             */
-                            const somethingRandom = (arr) => arr[Math.round(Math.random() * arr.length)];
+                            const somethingRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
                             const goodEffects = [ 74, 75, 76, 78, 79, 81 ];
                             const aGoodEffect = somethingRandom(goodEffects);
                             
@@ -2819,7 +2819,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '1.9.6';
+            const VERSION = '1.9.7';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    

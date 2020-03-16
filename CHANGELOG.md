@@ -164,3 +164,7 @@
 ## [1.9.6] - 2019-03-16
 ### Added
 - Smissmas 2019 effects.
+
+## [1.9.7] - 2019-03-16
+### Fixed
+- Something minor.
