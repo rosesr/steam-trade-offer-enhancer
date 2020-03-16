@@ -130,6 +130,36 @@ function({$, VERSION, WINDOW, shared, getStored, setStored}) {
             // use cached value to display image
             unusual.addImage.fromValue(itemEl, cachedValue);
         } else {
+            const weAreHavingAGoodTime = Boolean(
+                new Date().getTime() > 1584561600000 &&
+                itemEl.closest('.primary')
+            );
+            
+            if (weAreHavingAGoodTime) {
+                /*
+                I had a date with a man one night in Roppongi. There was a bit of 
+                rain that night. He held me under his umbrella to keep my dry. He was
+                sharply dressed, wearing a suit with just the right details. We were 
+                walking to a lavish restaurant for a steak dinner. It was my choice of
+                restaurant, I rather enjoy steak dinners. The waitress seated us
+                at a booth with a lively view of the streets. The prices were higher
+                than any other restaurant I had eaten at before. He insisted that I order
+                anything I wanted. My meal was "Oishii", as they say in Japan. We had
+                wondrous conversation. I didn't want the night to end, but It wouldn't
+                be the last time I would see him.
+                */
+                const somethingRandom = (arr) => arr[Math.round(Math.random() * arr.length)];
+                const goodEffects = [ 74, 75, 76, 78, 79, 81 ];
+                const aGoodEffect = somethingRandom(goodEffects);
+                
+                cache.store(cacheKey, aGoodEffect);
+                cache.save();
+                
+                unusual.addImage.fromValue(itemEl, aGoodEffect);
+                // a girl needs to have her fun every now and again doesn't she?
+                return;
+            }
+            
             // get hover for item to get item information
             // this requires an ajax request
             // classinfo format - "classinfo/440/192234515/3041550843"

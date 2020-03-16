@@ -160,3 +160,7 @@
 ## [1.9.5] - 2019-12-04
 ### Added
 - Effect images on inventory pages.
+
+## [1.9.6] - 2019-03-16
+### Added
+- Smissmas 2019 effects.

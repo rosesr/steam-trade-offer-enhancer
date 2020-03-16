@@ -313,7 +313,24 @@ const shared = {
                 'Eerie Lightning': 3027,
                 'Terrifying Thunder': 3028,
                 'Jarate Shock': 3029,
-                'Nether Void': 3030
+                'Nether Void': 3030,
+                'Sparkling Lights': 134,
+                'Frozen Icefall': 135,
+                'Fragmented Gluons': 136,
+                'Fragmented Quarks': 137,
+                'Fragmented Photons': 138,
+                'Defragmenting Reality': 139,
+                'Fragmenting Reality': 141,
+                'Refragmenting Reality': 142,
+                'Snowfallen': 143,
+                'Snowblinded': 144,
+                'Pyroland Daydream': 145,
+                'Good-Hearted Goodies': 3031,
+                'Wintery Wisp': 3032,
+                'Arctic Aurora': 3033,
+                'Winter Spirit': 3034,
+                'Festive Spirit': 3035,
+                'Magical Spirit': 3036
             },
             /**
              * Includes effect image in element.

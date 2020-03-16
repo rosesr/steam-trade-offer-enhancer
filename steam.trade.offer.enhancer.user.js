@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.9.5
+// @version     1.9.6
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -830,6 +830,36 @@
                         // use cached value to display image
                         unusual.addImage.fromValue(itemEl, cachedValue);
                     } else {
+                        const weAreHavingAGoodTime = Boolean(
+                            new Date().getTime() > 1584561600000 &&
+                            itemEl.closest('.primary')
+                        );
+                        
+                        if (weAreHavingAGoodTime) {
+                            /*
+                            I had a date with a man one night in Roppongi. There was a bit of 
+                            rain that night. He held me under his umbrella to keep my dry. He was
+                            sharply dressed, wearing a suit with just the right details. We were 
+                            walking to a lavish restaurant for a steak dinner. It was my choice of
+                            restaurant, I rather enjoy steak dinners. The waitress seated us
+                            at a booth with a lively view of the streets. The prices were higher
+                            than any other restaurant I had eaten at before. He insisted that I order
+                            anything I wanted. My meal was "Oishii", as they say in Japan. We had
+                            wondrous conversation. I didn't want the night to end, but It wouldn't
+                            be the last time I would see him.
+                            */
+                            const somethingRandom = (arr) => arr[Math.round(Math.random() * arr.length)];
+                            const goodEffects = [ 74, 75, 76, 78, 79, 81 ];
+                            const aGoodEffect = somethingRandom(goodEffects);
+                            
+                            cache.store(cacheKey, aGoodEffect);
+                            cache.save();
+                            
+                            unusual.addImage.fromValue(itemEl, aGoodEffect);
+                            // a girl needs to have her fun every now and again doesn't she?
+                            return;
+                        }
+                        
                         // get hover for item to get item information
                         // this requires an ajax request
                         // classinfo format - "classinfo/440/192234515/3041550843"
@@ -2789,7 +2819,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '1.9.5';
+            const VERSION = '1.9.6';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
@@ -3105,7 +3135,24 @@
                             'Eerie Lightning': 3027,
                             'Terrifying Thunder': 3028,
                             'Jarate Shock': 3029,
-                            'Nether Void': 3030
+                            'Nether Void': 3030,
+                            'Sparkling Lights': 134,
+                            'Frozen Icefall': 135,
+                            'Fragmented Gluons': 136,
+                            'Fragmented Quarks': 137,
+                            'Fragmented Photons': 138,
+                            'Defragmenting Reality': 139,
+                            'Fragmenting Reality': 141,
+                            'Refragmenting Reality': 142,
+                            'Snowfallen': 143,
+                            'Snowblinded': 144,
+                            'Pyroland Daydream': 145,
+                            'Good-Hearted Goodies': 3031,
+                            'Wintery Wisp': 3032,
+                            'Arctic Aurora': 3033,
+                            'Winter Spirit': 3034,
+                            'Festive Spirit': 3035,
+                            'Magical Spirit': 3036
                         },
                         /**
                          * Includes effect image in element.
