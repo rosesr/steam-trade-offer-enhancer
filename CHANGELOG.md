@@ -168,3 +168,7 @@
 ## [1.9.7] - 2019-03-16
 ### Fixed
 - Something minor.
+
+## [1.9.8] - 2019-03-18
+### Fixed
+- Bug with effect images.
