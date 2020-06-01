@@ -21,17 +21,26 @@ Fork of [Steam Trade Offer Enhancer by scholtzm](https://github.com/scholtzm/ste
 - Quickly clear items from trade offer.
 - Add items by ID. Use hotkey "P" to show field to add items by ID. You can specify multiple IDs by seperating the IDs by commas (e.g. "1,2,3,4,5").
 - Option to add only keys or metal.
-- Unusual effect images are displayed on items that have Unusual effects.
 - Automatically adds item if `for_item` URL parameter is present. This is generated from trade offer links on backpack.tf stats/classifieds pages.
 - Adds an option to add currencies from listing if `listing_intent` URL parameter is present. This is generated from trade offer links on backpack.tf stats/classifieds pages.
+- Unusual effect images are displayed on items with effects.
+- Uncraftable items are displayed with a dashed border.
+- Strangified items (e.g. "Strange Unusual" items) have an orange colored border.
+- Spelled items display an icon.
 
 ### ```https://steamcommunity.com/profiles/<steamid>/tradeoffers```<br/>```https://steamcommunity.com/id/<id>/tradeoffers```
 - Quick links to backpack.tf and Rep.tf pages on offers.
 - Summary for trade offers.
-- Unusual effect images are displayed on Unusual items that have Unusual effects.
+- Unusual effect images are displayed on items with effects.
+- Uncraftable items are displayed with a dashed border.
+- Strangified items (e.g. "Strange Unusual" items) have an orange colored border.
+- Spelled items display an icon.
 
 ### ```https://steamcommunity.com/profiles/<steamid>/inventory```<br/>```https://steamcommunity.com/id/<id>/inventory```
-- Unusual effect images are displayed on Unusual items that have Unusual effects.
+- Unusual effect images are displayed on items with effects.
+- Uncraftable items are displayed with a dashed border.
+- Strangified items (e.g. "Strange Unusual" items) have an orange colored border.
+- Spelled items display an icon.
 
 ### ```https://backpack.tf/profiles/<steamid>```
 - Total values are displayed in keys rather than refined.
