@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     1.9.8
+// @version     2.0.0
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -26,7 +26,7 @@
             includes: [
                 /^https?:\/\/(.*\.)?backpack\.tf(:\\d+)?\/(stats|classifieds).*/
             ],
-            fn: function({Utils}) {
+            fn: function({ Utils }) {
                 const dom = {
                     listingsElList: document.getElementsByClassName('listing')
                 };
@@ -41,30 +41,34 @@
                     } = itemEl.dataset;
                     const currencies = Utils.stringToCurrencies(listing_price);
                     
-                    if (currencies != null) {
-                        // array of query string parameters
-                        // e.g. ['listing_intent=1', 'listing_currencies_keys=2']
-                        const query = (function getQuery() {
-                            const params = {
-                                listing_intent: listing_intent === 'buy' ? 0 : 1
-                            };
-                            
-                            for (let k in currencies) {
-                                params['listing_currencies_' + k] = currencies[k];
-                            }
-                            
-                            return Object.entries(params).map(([k, v]) => {
-                                return k + '=' + v;
-                            });
-                        }());
-                        // url with query added
-                        const url = [
-                            href,
-                            ...query
-                        ].join('&');
-                        
-                        offerButtonEl.setAttribute('href', url);
+                    // no currencies
+                    if (currencies == null) {
+                        // continue
+                        return;
                     }
+                    
+                    // array of query string parameters
+                    // e.g. ['listing_intent=1', 'listing_currencies_keys=2']
+                    const query = (function getQuery() {
+                        const params = {
+                            listing_intent: listing_intent === 'buy' ? 0 : 1
+                        };
+                        
+                        for (let k in currencies) {
+                            params['listing_currencies_' + k] = currencies[k];
+                        }
+                        
+                        return Object.entries(params).map(([k, v]) => {
+                            return k + '=' + v;
+                        });
+                    }());
+                    // url with query added
+                    const url = [
+                        href,
+                        ...query
+                    ].join('&');
+                    
+                    offerButtonEl.setAttribute('href', url);
                 });
             }
         },
@@ -72,7 +76,7 @@
             includes: [
                 /^https?:\/\/(.*\.)?backpack\.tf(:\d+)?\/(?:id|profiles)\/.*/
             ],
-            fn: function({$, Utils, getStored, setStored}) {
+            fn: function({ $, Utils, getStored, setStored }) {
                 const urlParams = Utils.getURLParams();
                 const stored = {
                     key_price: 'getInventory.key_price'
@@ -104,12 +108,8 @@
                         // get the value of keys in metal
                         // this should be very approximate, but close enough
                         function getKeyValue() {
-                            /**
-                             * Get pricing details from item.
-                             * @param {Object} item - DOM element of data.
-                             * @returns {Object} Object containing price details.
-                             */
-                            function parseItem(item) {
+                            // gets pricing details from item element
+                            function parseItem(itemEl) {
                                 // parse price string e.g. "1-1.2 keys"
                                 function parseString(string) {
                                     const match = string.match(/^([\d\.]*)[\-\u2013]?([\d\.]*)? (\w*)/); 
@@ -153,7 +153,7 @@
                                     }
                                 }
                                 
-                                const data = item.dataset;
+                                const data = itemEl.dataset;
                                 const details = {};
                                 
                                 if (data.price) {
@@ -235,11 +235,7 @@
                             page.get.$firstSelectPage().trigger('click');
                         }
                         
-                        /**
-                         * Select items on page matching IDs.
-                         * @param {Array} ids - Array of IDs to select.
-                         * @returns {undefined}
-                         */
+                        // selects items in inventory matching the given ids
                         function selectItemsById(ids) {
                             const $backpack = page.$backpack;
                             const $items = $backpack.find('li.item:not(.spacer)');
@@ -254,11 +250,8 @@
                             page.$inventorySortMenu.find(`li[data-value="${key}"]`).trigger('click');
                         }
                         
-                        /**
-                         * Change comparison.
-                         * @param {Boolean} up - Go to next day if true, previous day if false.
-                         * @returns {undefined}
-                         */
+                        // changes the comparison
+                        // set up to true to go up a day, otherwise go down
                         function compare(up) {
                             const $from = page.get.$inventoryCmpFrom();
                             const $to = page.get.$inventoryCmpTo();
@@ -486,42 +479,62 @@
                 .unusual {
                     background-position: center !important;
                     background-size: 100% 100%;
+                    background-repeat: no-repeat;
+                }
+                
+                .uncraft {
+                    border-style: dashed !important;
+                }
+                
+                .strange:before {
+                    content: " ";
+                    position: absolute;
+                    z-index: 1;
+                    top: 2px;
+                    left: 2px;
+                    right: 2px;
+                    bottom: 2px;
+                    border: 2px solid rgba(207, 106, 50, 0.5);
+                    /* box-shadow: inset 0px 0px 12px 0px #CF6A32; */
+                }
+                
+                .icons img.spell {
+                    width: 14px;
+                    height: 20px;
+                }
+                
+                .icons {
+                    position: absolute;
+                    bottom: 6px;
+                    left: 6px;
+                    width: 100%;
+                    height: 20px;
                 }
             `,
-            fn: function({$, WINDOW, shared}) {
+            fn: function({ $, WINDOW, shared }) {
                 const dom = {
-                    tabContentInventory: document.getElementById('tabcontent_inventory'),
+                    inventory: document.getElementById('inventories'),
                     get: {
                         tf2Inventory: () => {
-                            const inventoriesList = document.querySelectorAll('#inventories > .inventory_ctn');
-                                                                              
-                            return Array.from(inventoriesList).find((el) => {
-                                return /_440_2$/.test(el.id);
-                            });
+                            const userSteamId = WINDOW.UserYou.strSteamId;
+                            const app440InventoryId = `inventory_${userSteamId}_440_2`;
+                            
+                            return document.getElementById(app440InventoryId);
                         },
-                        unusuals: () => {
+                        items: () => {
                             const inventory = dom.get.tf2Inventory();
-                            const isUnusualItem = (itemEl) => {
-                                const borderColor = itemEl.style.borderColor;
-                                const hasPurpleBorder = borderColor === 'rgb(134, 80, 172)';
-                                
-                                return Boolean(
-                                    hasPurpleBorder
-                                );
-                            };
                             
                             if (!inventory) {
                                 return [];
                             }
                             
-                            const itemsList = Array.from(inventory.querySelectorAll('.item:not(.unusual)'));
-                            
-                            return itemsList.select(isUnusualItem);
+                            return Array.from(inventory.querySelectorAll('.item:not(.pendingItem)'));
                         }
                     }
                 };
                 
-                function onInventory() {
+                // tf2 inventory has changed
+                function onTF2InventoryChange() {
                     function getAsset(assets, itemEl) {
                         const [ , , assetid] = itemEl.id.split('_');
                         
@@ -536,70 +549,63 @@
                         WINDOW.g_rgAppContextData[440].rgContexts[2] &&
                         WINDOW.g_rgAppContextData[440].rgContexts[2].inventory
                     );
-                    const hasInventory = Boolean(
-                        inventory
-                    );
                     
-                    if (!hasInventory) {
-                        // no tf2 assets
+                    // no tf2 inventory in contexts
+                    if (!inventory) {
+                        // stop
                         return;
                     }
                     
                     const {
-                        getEffectName,
-                        getEffectValue,
-                        modifyElement
-                    } = shared.offers.unusual;
+                        addAttributes
+                    } = shared.offers.identifiers;
                     const assets = inventory.m_rgAssets;
-                    const itemsList = dom.get.unusuals();
-                    const addUnusualEffect = (itemEl) => {
-                        const asset = getAsset(assets, itemEl);
-                        const effectName = getEffectName(asset.description);
-                        const effectValue = getEffectValue(effectName);
-                        // the value for the effect was found
-                        const hasValue = Boolean(
-                            effectValue
-                        );
-                        
-                        if (!hasValue) {
-                            return;
-                        }
-                        
-                        // we can modify it
-                        modifyElement(itemEl, effectValue);
-                    };
+                    const itemsList = dom.get.items();
                     
-                    itemsList.forEach(addUnusualEffect);
+                    itemsList.forEach((itemEl) => {
+                        const asset = getAsset(assets, itemEl);
+                        // item is stored in description of asset
+                        const item = asset.description;
+                        
+                        // add the attributes to this item
+                        addAttributes(item, itemEl);
+                    });
+                }
+                
+                // a tf2 inventory was loaded on the page
+                function onTF2Inventory(tf2Inventory) {
+                    const observer = new MutationObserver(onTF2InventoryChange);
+                    
+                    // observe changes to the tf2 inventory
+                    observer.observe(tf2Inventory, {
+                        childList: true
+                    });
+                    
+                    onTF2InventoryChange();
                 }
                 
                 // observe changes to dom
-                (function observe() {
-                    const inventoryEl = dom.tabContentInventory;
-                    const hasInventory = Boolean(
-                        inventoryEl
-                    );
-                    
-                    // no tf2 inventory on page
-                    if (!hasInventory) {
-                        return;
-                    }
-                    
-                    const observer = new MutationObserver((mutations) => {
+                (function() {
+                    const inventoryEl = dom.inventory;
+                    // wait for the tf2 inventory to be loaded
+                    const observer = new MutationObserver(() => {
                         const tf2Inventory = dom.get.tf2Inventory();
                         const tf2InventoryVisible = Boolean(
                             tf2Inventory &&
                             tf2Inventory.style.display !== 'none'
                         );
+                        const itemsList = dom.get.items();
                         
-                        if (tf2InventoryVisible) {
-                            console.log('yes');
-                            onInventory();
+                        // make sure the inventory is visible and it contains visible items
+                        if (tf2InventoryVisible && itemsList.length > 0) {
+                            // disconnect the observer
+                            observer.disconnect();
+                            onTF2Inventory(tf2Inventory);
                         }
                     });
                     
                     observer.observe(inventoryEl, {
                         childList: true,
-                        characterData: false,
                         subtree: true
                     });
                 }());
@@ -689,8 +695,38 @@
                 }
                 
                 .unusual {
-                    background-position: center;
+                    background-position: center !important;
                     background-size: 100% 100%;
+                    background-repeat: no-repeat;
+                }
+                
+                .uncraft {
+                    border-style: dashed !important;
+                }
+                
+                .strange:before {
+                    content: " ";
+                    position: absolute;
+                    z-index: -1;
+                    top: 2px;
+                    left: 2px;
+                    right: 2px;
+                    bottom: 2px;
+                    border: 2px solid rgba(207, 106, 50, 0.5);
+                    /* box-shadow: inset 0px 0px 12px 0px #CF6A32; */
+                }
+                
+                .icons img.spell {
+                    width: 14px;
+                    height: 20px;
+                }
+                
+                .icons {
+                    position: absolute;
+                    bottom: 6px;
+                    left: 6px;
+                    width: 100%;
+                    height: 20px;
                 }
                 
                 .decline_active_button {
@@ -699,166 +735,69 @@
                     text-align: center;
                 }
             `,
-            fn: function({$, VERSION, WINDOW, shared, getStored, setStored}) {
+            fn: function({ $, VERSION, WINDOW, shared, getStored, setStored }) {
                 const dom = {
                     offers: document.getElementsByClassName('tradeoffer')
                 };
                 const stored = {
-                    effect_cache: VERSION + '.getTradeOffers.effect_cache'
+                    cache: VERSION + '.getTradeOffers.cache'
                 };
-                const unusual = (function() {
-                    // take helper methods/objects
-                    const {
-                        effectsMap,
-                        modifyElement,
-                        getEffectName,
-                        getEffectURL
-                    } = shared.offers.unusual;
-                    const addImage = {
-                        fromValue(itemEl, value) {
-                            return modifyElement(itemEl, value);
-                        },
-                        /**
-                         * Adds an image using an item's object.
-                         * @param {Object} itemEl - DOM element of item.
-                         * @param {Object} item - Item object.
-                         * @returns {undefined}
-                         */
-                        fromItem(itemEl, item) {
-                            const name = getEffectName(item);
-                            const value = (
-                                name &&
-                                effectsMap[name]
-                            );
-                            const cacheKey = cache.key(itemEl);
-                            
-                            // cache blank value if there is no value
-                            // so that we do not obsessively request data
-                            // for this item when no value is available
-                            cache.store(cacheKey, value || 'none');
-                            cache.save();
-                            
-                            if (value) {
-                                modifyElement(itemEl, value);
-                            }
-                        }
-                    };
-                    const cache = (function() {
-                        // THE KEY TO SET/GET VALUES FROM
-                        const CACHE_INDEX = stored.effect_cache;
-                        // this will hold our cached values
-                        let values = {};
+                const attributeCache = (function() {
+                    // THE KEY TO SET/GET VALUES FROM
+                    const CACHE_INDEX = stored.cache;
+                    // this will hold our cached values
+                    let values = {};
+                    
+                    function save() {
+                        let value = JSON.stringify(values);
                         
-                        function save() {
-                            let value = JSON.stringify(values);
-                            
-                            if (value.length >= 10000) {
-                                // clear cache when it becomes too big
-                                values = {};
-                                value = '{}'; 
-                            }
-                            
-                            setStored(CACHE_INDEX, value);
+                        if (value.length >= 10000) {
+                            // clear cache when it becomes too big
+                            values = {};
+                            value = '{}'; 
                         }
                         
-                        function store(key, value) {
-                            values[key] = value;
-                        }
+                        setStored(CACHE_INDEX, value);
+                    }
+                    
+                    function store(key, value) {
+                        values[key] = value;
+                    }
+                    
+                    function get() {
+                        values = JSON.parse(getStored(CACHE_INDEX) || '{}');
+                    }
+                    
+                    function key(itemEl) {
+                        const classinfo = itemEl.getAttribute('data-economy-item');
+                        const [ , , classid] = classinfo.split('/');
                         
-                        function get() {
-                            values = JSON.parse(getStored(CACHE_INDEX) || '{}');
-                        }
-                        
-                        function key(itemEl) {
-                            const classinfo = itemEl.getAttribute('data-economy-item');
-                            const [ , , classid, instanceid] = classinfo.split('/');
-                            const cacheKey = [classid, instanceid].join('-');
-                            
-                            return cacheKey;
-                        }
-                        
-                        function getValue(key) {
-                            return values[key];
-                        }
-                        
-                        return {
-                            save,
-                            get,
-                            store,
-                            key,
-                            getValue
-                        };
-                    }());
+                        return classid;
+                    }
+                    
+                    function getValue(key) {
+                        return values[key];
+                    }
                     
                     return {
-                        addImage,
-                        cache,
-                        getEffectURL
+                        save,
+                        get,
+                        store,
+                        key,
+                        getValue
                     };
                 }());
-                // get all unusual elements
-                const unusualItemsList = (function() {
-                    const itemElList = document.getElementsByClassName('trade_item');
-                    const isUnusualItem = (itemEl) => {
-                        const borderColor = itemEl.style.borderColor;
-                        const classinfo = itemEl.getAttribute('data-economy-item');
-                        const isTf2 = /^classinfo\/440\//.test(classinfo);
-                        const hasPurpleBorder = borderColor === 'rgb(134, 80, 172)';
-                        
-                        return Boolean(
-                            isTf2 &&
-                            hasPurpleBorder
-                        );
-                    };
-                    
-                    return Array.from(itemElList).filter(isUnusualItem);
-                }());
+                const {
+                    getItemAttributes,
+                    addAttributesToElement
+                } = shared.offers.identifiers;
                 
                 // perform actions
                 // get the cached effect values for stored classinfos
-                unusual.cache.get();
-                // get all unusual items on the page
-                // then check each one for adding effect effect images
-                unusualItemsList.forEach(function checkItem(itemEl) {
-                    const cache = unusual.cache;
-                    const cacheKey = cache.key(itemEl);
-                    const cachedValue = cache.getValue(cacheKey);
-                    
-                    if (cachedValue === 'none') {
-                        // i am a do-nothing
-                    } else if (cachedValue) {
-                        // use cached value to display image
-                        unusual.addImage.fromValue(itemEl, cachedValue);
-                    } else {
-                        // get hover for item to get item information
-                        // this requires an ajax request
-                        // classinfo format - "classinfo/440/192234515/3041550843"
-                        const classinfo = itemEl.getAttribute('data-economy-item');
-                        const [ , appid, classid, instanceid] = classinfo.split('/');
-                        const itemStr = [appid, classid, instanceid].join('/');
-                        const uri = `economy/itemclasshover/${itemStr}?content_only=1&l=english`;
-                        const req = new WINDOW.CDelayedAJAXData(uri, 0);
-                        
-                        req.QueueAjaxRequestIfNecessary();
-                        req.RunWhenAJAXReady(() => {
-                            // 3rd element is a script tag containing item data
-                            const html = req.m_$Data[2].innerHTML;
-                            // extract the json for item with pattern...
-                            const match = html.match(/BuildHover\(\s*?\'economy_item_[A-z0-9]+\',\s*?(.*)\s\);/);
-                            
-                            try {
-                                // then parse it
-                                const json = JSON.parse(match[1]);
-                                
-                                unusual.addImage.fromItem(itemEl, json);
-                            } catch (e) {
-                                
-                            }
-                        });
-                    }
-                });
+                attributeCache.get();
+                
                 // modify each trade offer
-                Array.from(dom.offers).forEach(function checkOffer(offerEl) {
+                Array.from(dom.offers).forEach((offerEl) => {
                     // add buttons to the offer
                     (function addButtons() {
                         const reportButtonEl = offerEl.getElementsByClassName('btn_report')[0];
@@ -923,12 +862,13 @@
                         // we don't really want it
                         reportButtonEl.remove();
                     }());
-                    // summarize the offer
-                    (function summarize() {
+                    
+                    // summarize the offers
+                    (function() {
                         const itemsList = offerEl.getElementsByClassName('tradeoffer_item_list');
                         
                         // summarize each list
-                        Array.from(itemsList).forEach(function summarizeList(itemsEl) {
+                        Array.from(itemsList).forEach((itemsEl) => {
                             const itemsArr = Array.from(itemsEl.getElementsByClassName('trade_item'));
                             const getClassInfo = (itemEl) => {
                                 const classinfo = itemEl.getAttribute('data-economy-item');
@@ -1073,7 +1013,7 @@
                                     return sorted;
                                 }());
                                 
-                                items.forEach(({el, count}) => {
+                                items.forEach(({ el, count }) => {
                                     if (count > 1) {
                                         // add badge
                                         const badgeEl = document.createElement('span');
@@ -1097,9 +1037,73 @@
                         });
                     }());
                 });
+                
+                // add attributes to images
+                (function() {
+                    let itemsChecked = 0;
+                    let cacheSaveTimer;
+                    
+                    Array.from(document.getElementsByClassName('trade_item')).forEach((itemEl) => {
+                        // get hover for item to get item information
+                        // this requires an ajax request
+                        // classinfo format - "classinfo/440/192234515/3041550843"
+                        const classinfo = itemEl.getAttribute('data-economy-item');
+                        const [ , appid, classid, instanceid] = classinfo.split('/');
+                        
+                        // only check tf2 items
+                        if (appid !== '440') {
+                            // continue
+                            return;
+                        }
+                        
+                        const cacheKey = attributeCache.key(itemEl);
+                        const cachedValue = attributeCache.getValue(cacheKey);
+                        
+                        if (cachedValue) {
+                            // use cached attributes
+                            addAttributesToElement(itemEl, cachedValue);
+                        } else {
+                            const itemStr = [appid, classid, instanceid].join('/');
+                            const uri = `economy/itemclasshover/${itemStr}?content_only=1&l=english`;
+                            const req = new WINDOW.CDelayedAJAXData(uri, 0);
+                            // this will space requests
+                            const delay = 5000 * Math.floor(itemsChecked / 50);
+                            
+                            itemsChecked++;
+                            
+                            setTimeout(() => {
+                                req.RunWhenAJAXReady(() => {
+                                    // 3rd element is a script tag containing item data
+                                    const html = req.m_$Data[2].innerHTML;
+                                    // extract the json for item with pattern...
+                                    const match = html.match(/BuildHover\(\s*?\'economy_item_[A-z0-9]+\',\s*?(.*)\s\);/);
+                                    
+                                    try {
+                                        // then parse it
+                                        const item = JSON.parse(match[1]);
+                                        const attributes = getItemAttributes(item);
+                                        
+                                        // then add the attributes to the element
+                                        addAttributesToElement(itemEl, attributes);
+                                        
+                                        // store the attributes in cache
+                                        attributeCache.store(cacheKey, attributes);
+                                        
+                                        // then save it n ms after the last completed request
+                                        clearTimeout(cacheSaveTimer);
+                                        cacheSaveTimer = setTimeout(attributeCache.save, 1000);
+                                    } catch (e) {
+                                        
+                                    }
+                                });
+                            }, delay);
+                        }
+                    });
+                }());
+                
                 // add the button to decline all trade offers
-                (function addDeclineAllOffersButton() {
-                    const {ShowConfirmDialog} = WINDOW;
+                (function() {
+                    const { ShowConfirmDialog } = WINDOW;
                     // gets an array of id's of all active trade offers on page
                     const getActiveTradeOfferIDs = () => {
                         const getTradeOfferIDs = (tradeOffersList) => {
@@ -1115,7 +1119,7 @@
                     };
                     // declines any number of trades by their id
                     // first parameter is an object which provides method to act on trade offer
-                    const declineOffers = ({ActOnTradeOffer}, tradeOfferIDs) => {
+                    const declineOffers = ({ ActOnTradeOffer }, tradeOfferIDs) => {
                         const declineOffer = (tradeOfferID) => {
                             ActOnTradeOffer(tradeOfferID, 'decline', 'Trade Declined', 'Decline Trade');
                         };
@@ -1197,6 +1201,7 @@
                 
                 .summary_item {
                     display: inline-block;
+                    position: relative;
                     width: 48px;
                     height: 48px;
                     padding: 3px;
@@ -1245,15 +1250,45 @@
                 }
                 
                 .unusual {
-                    background-position: center;
+                    background-position: center !important;
                     background-size: 100% 100%;
+                    background-repeat: no-repeat;
+                }
+                
+                .uncraft {
+                    border-style: dashed !important;
+                }
+                
+                .strange:before {
+                    content: " ";
+                    position: absolute;
+                    z-index: 1;
+                    top: 2px;
+                    left: 2px;
+                    right: 2px;
+                    bottom: 2px;
+                    border: 2px solid rgba(207, 106, 50, 0.5);
+                    /* box-shadow: inset 0px 0px 12px 0px #CF6A32; */
+                }
+                
+                .icons img.spell {
+                    width: 14px;
+                    height: 20px;
+                }
+                
+                .icons {
+                    position: absolute;
+                    bottom: 6px;
+                    left: 6px;
+                    width: 100%;
+                    height: 20px;
                 }
             `,
-            fn: function({WINDOW, $, Utils, shared, getStored, setStored}) {
+            fn: function({ WINDOW, $, Utils, shared, getStored, setStored }) {
                 const urlParams = Utils.getURLParams();
                 // these are never re-assigned in steam's source code
                 // only updated
-                const {UserYou, UserThem, RefreshTradeStatus} = WINDOW;
+                const { UserYou, UserThem, RefreshTradeStatus } = WINDOW;
                 const STEAMID = UserYou.strSteamId;
                 const PARTNER_STEAMID = UserThem.strSteamId;
                 const INVENTORY = WINDOW.g_rgAppContextData;
@@ -1299,83 +1334,10 @@
                      * @returns {(Object|null)} Summary of items, null if inventory is not properly loaded.
                      */
                     function evaluateItems($items, you) {
-                        let warningIdentifiers = [
-                            {
-                                name: 'rare TF2 key',
-                                appid: '440',
-                                check: function({appdata}) {
-                                    // array of rare TF2 keys (defindexes)
-                                    const rare440Keys = [
-                                        '5049', '5067', '5072', '5073',
-                                        '5079', '5081', '5628', '5631',
-                                        '5632', '5713', '5716', '5717',
-                                        '5762'
-                                    ];
-                                    const defindex = (
-                                        appdata &&
-                                        appdata.def_index
-                                    );
-                                    
-                                    return Boolean(
-                                        typeof defindex === 'string' &&
-                                        rare440Keys.indexOf(defindex) !== -1
-                                    );
-                                }
-                            },
-                            {
-                                name: 'uncraftable item',
-                                appid: '440',
-                                check: function({descriptions}) {
-                                    const isUncraftable = (description) => {
-                                        return Boolean(
-                                            !description.color &&
-                                            description.value === '( Not Usable in Crafting )'
-                                        );
-                                    };
-                                    
-                                    return Boolean(
-                                        typeof descriptions === 'object' &&
-                                        descriptions.some(isUncraftable)
-                                    );
-                                }
-                            },
-                            {
-                                name: 'spelled item',
-                                appid: '440',
-                                check: function({descriptions}) {
-                                    const isSpelled = (description) => {
-                                        return Boolean(
-                                            description.color === '7ea9d1' &&
-                                            description.value.indexOf('(spell only active during event)') !== -1
-                                        );
-                                    };
-                                    
-                                    return Boolean(
-                                        typeof descriptions === 'object' &&
-                                        descriptions.some(isSpelled)
-                                    );
-                                }
-                            },
-                            {
-                                name: 'restricted gift',
-                                appid: '753',
-                                check: function({fraudwarnings}) {
-                                    const isRestricted = (text) => {
-                                        return text.indexOf('restricted gift') !== -1;
-                                    };
-                                    
-                                    return Boolean(
-                                        typeof fraudwarnings === 'object' &&
-                                        fraudwarnings.some(isRestricted)
-                                    );
-                                }
-                            }
-                        ];
                         const inventory = you ? INVENTORY : PARTNER_INVENTORY;
                         const total = $items.length;
                         let apps = {};
                         let items = {};
-                        let warnings = [];
                         let valid = true;
                         
                         $items.toArray().forEach((itemEl) => {
@@ -1384,7 +1346,9 @@
                             const [appid, contextid, assetid] = split;
                             const img = itemEl.getElementsByTagName('img')[0].getAttribute('src');
                             const quality = itemEl.style.borderColor;
-                            const effect = itemEl.getAttribute('data-effect') || 'none';
+                            const effect = itemEl.getAttribute('data-effect');
+                            const uncraft = itemEl.classList.contains('uncraft');
+                            const strange = itemEl.classList.contains('strange');
                             const item = (
                                 inventory[appid] &&
                                 inventory[appid].rgContexts[contextid].inventory.rgInventory[assetid]
@@ -1402,38 +1366,30 @@
                                 apps[appid] = [];
                             }
                             
-                            items[img] = items[img] || {};
-                            items[img][quality] = (items[img][quality] || {});
-                            items[img][quality][effect] = (items[img][quality][effect] || 0) + 1;
-                            apps[appid].push(assetid);
+                            // create json for item
+                            const json = Utils.omitEmpty({
+                                img,
+                                quality,
+                                effect,
+                                uncraft,
+                                strange
+                            });
+                            // use the json to create the key
+                            const key = JSON.stringify(json);
                             
-                            for (let i = warningIdentifiers.length - 1; i >= 0; i--) {
-                                const identifier = warningIdentifiers[i];
-                                const addWarning = Boolean(
-                                    identifier.appid === appid &&
-                                    identifier.check(item)
-                                );
-                                
-                                if (addWarning) {
-                                    // add the warning
-                                    warnings.push(`Offer contains ${identifier.name}(s).`);
-                                    // remove the identifier so we do not check for it
-                                    // or add it again after this point
-                                    warningIdentifiers.splice(i, 1);
-                                }
-                            }
+                            items[key] = (items[key] || 0) + 1;
+                            apps[appid].push(assetid);
                         });
                         
-                        if (valid) {
-                            return {
-                                total,
-                                apps,
-                                items,
-                                warnings
-                            };
+                        if (!valid) {
+                            return null;
                         }
                         
-                        return null;
+                        return {
+                            total,
+                            apps,
+                            items
+                        };
                     }
                     
                     /**
@@ -1451,30 +1407,42 @@
                         
                         function getSummary(items, apps, steamid) {
                             // helper for getting effecting url
-                            const {getEffectURL} = shared.offers.unusual;
+                            const { getEffectURL } = shared.offers.unusual;
                             const ids = apps['440'];
                             let html = '';
                             
                             // super duper looper
-                            for (let img in items) {
-                                for (let quality in items[img]) {
-                                    for (let effect in items[img][quality]) {
-                                        // generate the html for this item
-                                        const count = items[img][quality][effect];
-                                        const imgs = [`url(${img})`];
-                                        
-                                        if (effect !== 'none') {
-                                            imgs.push(`url('${getEffectURL(effect)}')`);
-                                        }
-                                        
-                                        const styles = `background-image: ${imgs.join(', ')}; border-color: ${quality};`;
-                                        const badge = count > 1 ? `<span class="summary_badge">${count}</span>` : '&nbsp;';
-                                        const itemHTML = `<span class="summary_item" style="${styles}">${badge}</span>`;
-                                        
-                                        // add the html for this item
-                                        html += itemHTML;
-                                    }
+                            for (let key in items) {
+                                // generate the html for this item
+                                const {
+                                    img,
+                                    quality,
+                                    effect,
+                                    uncraft,
+                                    strange
+                                } = JSON.parse(key);
+                                const count = items[key];
+                                const imgs = [`url(${img})`];
+                                const classes = ['summary_item'];
+                                
+                                if (effect !== 'none') {
+                                    imgs.push(`url('${getEffectURL(effect)}')`);
                                 }
+                                
+                                if (uncraft) {
+                                    classes.push('uncraft');
+                                }
+                                
+                                if (strange) {
+                                    classes.push('strange');
+                                }
+                                
+                                const styles = `background-image: ${imgs.join(', ')}; border-color: ${quality};`;
+                                const badge = count > 1 ? `<span class="summary_badge">${count}</span>` : '&nbsp;';
+                                const itemHTML = `<span class="${classes.join(' ')}" style="${styles}">${badge}</span>`;
+                                
+                                // add the html for this item
+                                html += itemHTML;
                             }
                             
                             if (ids) {
@@ -1487,18 +1455,6 @@
                             }
                             
                             return html;
-                        }
-                        
-                        function getWarnings() {
-                            // no warnings to display
-                            if (warnings.length === 0) {
-                                return '';
-                            }
-                            
-                            // so that descriptions are always in the same order
-                            const descriptions = warnings.sort().join('<br/>');
-                            
-                            return `<div class="warning">${descriptions}</span>`;
                         }
                         
                         /**
@@ -1514,14 +1470,14 @@
                         }
                         
                         // unpack summary...
-                        const {total, apps, items, warnings} = summary;
+                        const { total, apps, items } = summary;
                         const steamid = User.strSteamId;
                         
                         // build html piece-by-piece
                         return [
                             getHeader(type, total),
                             getSummary(items, apps, steamid),
-                            getWarnings(warnings)
+                            ''
                         ].join('');
                     }
                     
@@ -2122,54 +2078,26 @@
                     
                     return getItems;
                 }());
-                const unusual = (function() {
+                
+                // customizes the elements within this inventory
+                function customizeItems(inventory) {
                     const {
-                        effectsMap,
-                        modifyElement,
-                        getEffectName
-                    } = shared.offers.unusual;
+                        addAttributes
+                    } = shared.offers.identifiers;
                     
-                    function addImagesToInventory(inventory) {
-                        function addEffectImage(item, effectName) {
-                            const value = effectsMap[effectName];
-                            
-                            if (value) {
-                                const {appid, contextid, id} = item;
-                                const elId = `item${appid}_${contextid}_${id}`;
-                                const itemEl = document.getElementById(elId);
-                                
-                                modifyElement(itemEl, value);
-                            }
-                        }
+                    for (let assetid in inventory) {
+                        const item = inventory[assetid];
                         
-                        for (let assetid in inventory) {
-                            const item = inventory[assetid];
-                            const effectName = getEffectName(item);
-                            
-                            if (effectName) {
-                                addEffectImage(item, effectName);
-                            }
+                        if (item.element) {
+                            // add the attributes to this element
+                            addAttributes(item, item.element);
                         }
                     }
-                    
-                    /**
-                     * Get URL of image for effect.
-                     * @param {Number} value - Value of effect.
-                     * @returns {String} URL string.
-                     */
-                    function getEffectURL(value) {
-                        return `https://backpack.tf/images/440/particles/${value}_188x188.png`;
-                    }
-                    
-                    return {
-                        addImagesToInventory,
-                        getEffectURL
-                    };
-                }());
+                }
                 
                 // perform actions
                 // add elements to page
-                (function addElements() {
+                (function() {
                     const controlsHTML = `
                         <div id="controls">
                             <div class="trade_rule selectableNone"/>
@@ -2263,8 +2191,9 @@
                         $getIDs: $('#btn_getids')
                     };
                 }());
+                
                 // binds events to elements
-                (function bindEvents() {
+                (function() {
                     // the user changed from one app to another
                     function appChanged(app) {
                         const $app = $(app);
@@ -2459,8 +2388,9 @@
                         keyPressed(e);
                     });
                 }());
+                
                 // register inventory events
-                (function bindInventoryEvents() {
+                (function() {
                     // this will force an inventory to load
                     function forceInventory(appid, contextid) {
                         TRADE_STATUS.them.assets.push({
@@ -2474,7 +2404,8 @@
                         RefreshTradeStatus(TRADE_STATUS, true);
                     }
                     
-                    function addEffectImages(steamid, appid, contextid) {
+                    // customizes the elements in the inventory
+                    function customizeElements(steamid, appid, contextid) {
                         const you = steamid === STEAMID;
                         const inventory = you ? INVENTORY : PARTNER_INVENTORY;
                         const contextInventory = inventory[appid].rgContexts[contextid].inventory.rgInventory;
@@ -2485,7 +2416,7 @@
                             forceVisibility();
                         }
                         
-                        unusual.addImagesToInventory(contextInventory);
+                        customizeItems(contextInventory);
                         // re-summarize
                         tradeOfferWindow.summarize(you);
                     }
@@ -2551,11 +2482,12 @@
                     });
                     
                     [STEAMID, PARTNER_STEAMID].forEach((steamid) => {
-                        inventoryManager.register(steamid, '440', '2', addEffectImages);
+                        inventoryManager.register(steamid, '440', '2', customizeElements);
                     });
                 }());
+                
                 // observe changes to dom
-                (function observe() {
+                (function() {
                     // observe changes to trade slots
                     (function() {
                         function observeSlots(slotsEl, you) {
@@ -2628,8 +2560,9 @@
                         page.btns.$listing.addClass(isSelling ? 'selling' : 'buying');
                     }
                 }());
+                
                 // override page functions
-                (function overrides() {
+                (function() {
                     // basically removes animation due to bugginess
                     // also it's a bit faster
                     WINDOW.EnsureSufficientTradeSlots = function(bYourSlots, cSlotsInUse, cCurrencySlotsInUse) {
@@ -2738,7 +2671,7 @@
                                     return false;
                                 }
                                 
-                                const getItem = ({appid, contextid, assetid}) => {
+                                const getItem = ({ appid, contextid, assetid }) => {
                                     return (
                                         groups[appid] &&
                                         groups[appid][contextid] &&
@@ -2789,7 +2722,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '1.9.8';
+            const VERSION = '2.0.0';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
@@ -2804,14 +2737,30 @@
                  * @returns {Object} Object containing url parameters e.g. {'item': 'Fruit Shoot'}
                  */
                 getURLParams: function() {
-                    let params = {};
-                    let pattern = /[?&]+([^=&]+)=([^&]*)/gi;
+                    const params = {};
+                    const pattern = /[?&]+([^=&]+)=([^&]*)/gi;
                     
                     window.location.search.replace(pattern, (str, key, value) => {
                         params[key] = decodeURIComponent(value);
                     });
                     
                     return params;
+                },
+                /**
+                 * Omits keys with values that are empty from object.
+                 * @param {Object} obj - Object to omit values from.
+                 * @returns {Object} Object with null, undefined, or empty string values omitted.
+                 */
+                omitEmpty: function(obj) {
+                    const result = {};
+                    
+                    for (let k in obj) {
+                        if (obj[k] != null && obj[k] !== '') {
+                            result[k] = obj[k];
+                        }
+                    }
+                    
+                    return result;
                 },
                 /**
                  * Get difference between two arrays
@@ -2859,10 +2808,12 @@
                  * @returns {undefined}
                  */
                 execHotKey: function(e, hotKeys) {
-                    let isTextField = /textarea|select/i.test(e.target.nodeName) || 
-                        ['number', 'text'].indexOf(e.target.type) !== -1;
-                    let code = e.keyCode || e.which;
-                    let method = hotKeys[code];
+                    const isTextField = (
+                        /textarea|select/i.test(e.target.nodeName) || 
+                        ['number', 'text'].indexOf(e.target.type) !== -1
+                    );
+                    const code = e.keyCode || e.which;
+                    const method = hotKeys[code];
                     
                     if (!isTextField && method) {
                         method();
@@ -2910,7 +2861,7 @@
                  * @returns {undefined}
                  */
                 copyToClipboard: function(str) {
-                    let el = document.createElement('textarea');
+                    const el = document.createElement('textarea');
                     
                     el.value = str;
                     document.body.appendChild(el);
@@ -2924,21 +2875,21 @@
                  * @returns {(Object|null)} Object of currencies if string is valid
                  */
                 stringToCurrencies: function(string) {
-                    let prices = string.split(',');
-                    let currencies = {};
-                    let currencyNames = {
+                    const prices = string.split(',');
+                    const currencies = {};
+                    const currencyNames = {
                         'metal': 'metal',
                         'ref': 'metal',
                         'keys': 'keys',
                         'key': 'keys'
                     };
                     
-                    for (let i = 0, n = prices.length; i < n; i++) {
+                    for (let i = 0; i < prices.length; i++) {
                         // match currencies - the first value is the amount
                         // the second value is the currency name
-                        let match = prices[i].trim().match(/^([\d\.]*) (\w*)$/i);
-                        let currency = currencyNames[match[2]];
-                        let value = parseFloat(match[1]);
+                        const match = prices[i].trim().match(/^([\d\.]*) (\w*)$/i);
+                        const currency = currencyNames[match[2]];
+                        const value = parseFloat(match[1]);
                         
                         if (currency) {
                             currencies[currency] = value;
@@ -2948,21 +2899,217 @@
                         }
                     }
                     
-                    if (Object.keys(currencies).length) {
-                        return currencies;
-                    } else {
+                    if (Object.keys(currencies).length === 0) {
                         return null;
                     }
+                    
+                    return currencies;
                 }
             };
             // these are shared between page scripts
             const shared = {
                 // offers shared between offers pages
                 offers: {
+                    // helpers for identifying items
+                    identifiers: {
+                        // gets the effect name from an item
+                        // item is an asset from steam
+                        getEffectName: function(item) {
+                            const hasDescriptions = typeof item.descriptions === 'object';
+                            const isUnique = (item.name_color || '').toUpperCase() === '7D6D00';
+                            
+                            // unique items should probably never have effects
+                            // though, cases have "Unusual Effect" descriptions and we want to exclude them
+                            if (!hasDescriptions || isUnique) {
+                                return null;
+                            }
+                            
+                            for (let i = 0; i < item.descriptions.length; i++) {
+                                const description = item.descriptions[i];
+                                const match = (
+                                    description.color === 'ffd700' &&
+                                    description.value.match(/^\u2605 Unusual Effect: (.+)$/)
+                                );
+                                
+                                if (match) {
+                                    return match[1];
+                                }
+                            }
+                        },
+                        // checks whether the item is strange or not (strange unusuals, strange genuine, etc.)
+                        // item is an asset from steam
+                        isStrange: function(item) {
+                            const pattern = /^Strange ([0-9\w\s\\(\)'\-]+) \- ([0-9\w\s\(\)'-]+): (\d+)\n?$/;
+                            // is a strange quality item
+                            const isStrange = (item.name_color || '').toUpperCase() === 'CF6A32';
+                            
+                            return Boolean(
+                                // we don't mean strange quality items
+                                !isStrange &&
+                                // the name must begin with strange
+                                /^Strange /.test(item.market_hash_name) &&
+                                // the item has a type
+                                item.type &&
+                                // the type matches a pattern similar to (Strange Hat - Points Scored: 0)
+                                pattern.test(item.type)
+                            );
+                        },
+                        // checks if the item is a rare tf2 key
+                        isRareTF2Key: function(item) {
+                            const { appdata } = item;
+                            // array of rare TF2 keys (defindexes)
+                            const rare440Keys = [
+                                '5049',
+                                '5067',
+                                '5072',
+                                '5073',
+                                '5079',
+                                '5081',
+                                '5628',
+                                '5631',
+                                '5632',
+                                '5713',
+                                '5716',
+                                '5717',
+                                '5762'
+                            ];
+                            const defindex = (
+                                appdata &&
+                                appdata.def_index
+                            );
+                            
+                            return Boolean(
+                                typeof defindex === 'string' &&
+                                rare440Keys.indexOf(defindex) !== -1
+                            );
+                        },
+                        // detects certain attributes from an item
+                        // this is used heavily and should be as optimized as possible
+                        getItemAttributes: function(item) {
+                            const hasDescriptions = typeof item.descriptions === 'object';
+                            const isUnique = (item.name_color || '').toUpperCase() === '7D6D00';
+                            const { isStrange } = shared.offers.identifiers;
+                            const { getEffectValue } = shared.offers.unusual;
+                            const attributes = {};
+                            
+                            if (isStrange(item)) {
+                                attributes.strange = true;
+                            }
+                            
+                            // no descriptions, so don't go any further
+                            if (!hasDescriptions) {
+                                return attributes;
+                            }
+                            
+                            for (let i = 0; i < item.descriptions.length; i++) {
+                                const description = item.descriptions[i];
+                                const matchesEffect = (
+                                    attributes.effectName === undefined &&
+                                    // this will exclude cases with "Unusual Effect" descriptions
+                                    !isUnique &&
+                                    description.color === 'ffd700' &&
+                                    description.value.match(/^\u2605 Unusual Effect: (.+)$/)
+                                );
+                                const isSpelled = Boolean(
+                                    attributes.spelled === undefined &&
+                                    description.color === '7ea9d1' &&
+                                    description.value.indexOf('(spell only active during event)') !== -1
+                                );
+                                const isUncraftable = Boolean(
+                                    !description.color &&
+                                    /^\( Not.* Usable in Crafting/.test(description.value)
+                                );
+                                
+                                if (matchesEffect) {
+                                    const effectName = matchesEffect[1];
+                                    
+                                    attributes.effect = getEffectValue(effectName);
+                                }
+                                
+                                if (isSpelled) {
+                                    attributes.spelled = true;
+                                }
+                                
+                                if (isUncraftable) {
+                                    attributes.uncraft = true;
+                                }
+                            }
+                            
+                            return attributes;
+                        },
+                        // adds attributes to item element
+                        addAttributes: function(item, itemEl) {
+                            const {
+                                getItemAttributes,
+                                addAttributesToElement
+                            } = shared.offers.identifiers;
+                            const attributes = getItemAttributes(item);
+                            
+                            addAttributesToElement(itemEl, attributes);
+                        },
+                        // adds attributes to item element
+                        addAttributesToElement: function(itemEl, attributes) {
+                            // already checked
+                            if (itemEl.hasAttribute('data-checked')) {
+                                return;
+                            }
+                            
+                            const {
+                                getEffectURL
+                            } = shared.offers.unusual;
+                            const iconsEl = document.createElement('div');
+                            const classes = [];
+                            
+                            if (attributes.effect) {
+                                const versions = {
+                                    // the 188x188 version does not work for purple confetti
+                                    7: '380x380'
+                                };
+                                const version = versions[attributes.effect];
+                                const url = getEffectURL(attributes.effect, version);
+                                
+                                itemEl.setAttribute('data-effect', attributes.effect);
+                                itemEl.style.backgroundImage = `url('${url}')`;
+                                classes.push('unusual');
+                            }
+                            
+                            if (attributes.strange) {
+                                classes.push('strange');
+                            }
+                            
+                            if (attributes.uncraft) {
+                                classes.push('uncraft');
+                            }
+                            
+                            if (attributes.spelled) {
+                                // construct icon for spells
+                                const spellEl = document.createElement('img');
+                                
+                                spellEl.setAttribute('src', 'https://scrap.tf/img/spell.png');
+                                spellEl.classList.add('spell');
+                                
+                                // add it to the icons element
+                                iconsEl.appendChild(spellEl);
+                            }
+                            
+                            // check if we added any icons to the element holding icons
+                            if (iconsEl.children.length > 0) {
+                                iconsEl.classList.add('icons');
+                                
+                                // then insert the element containing icons
+                                itemEl.appendChild(iconsEl);
+                            }
+                            
+                            if (classes.length > 0) {
+                                itemEl.classList.add(...classes);
+                            }
+                            
+                            itemEl.setAttribute('data-checked', 1);
+                        }
+                    },
                     // unusual helper functions
                     unusual: {
-                        // all unusual effects as of nov 23, 19
-                        // missing 2019 taunt effects since they are not availabe on backpack.tf yet
+                        // all unusual effects as of the winter 2019 update
                         effectsMap: {
                             'Green Confetti': 6,
                             'Purple Confetti': 7,
@@ -3139,7 +3286,6 @@
                             const url = shared.offers.unusual.getEffectURL(value, version);
                             
                             itemEl.style.backgroundImage = `url('${url}')`;
-                            itemEl.setAttribute('data-effect', value);
                             itemEl.classList.add('unusual');
                         },
                         /**
@@ -3158,33 +3304,6 @@
                          */
                         getEffectURL: function(value, version) {
                             return `https://backpack.tf/images/440/particles/${value}_${version || '188x188'}.png`;
-                        },
-                        /**
-                         * Gets the effect name from an item.
-                         * @param {Object} item - Item from steam.
-                         * @returns {(String|null|undefined)} Effect name, if available.
-                         */
-                        getEffectName: function(item) {
-                            const hasDescriptions = typeof item.descriptions === 'object';
-                            const isUnique = (item.name_color || '').toUpperCase() === '7D6D00';
-                            
-                            // unique items should probably never have effects
-                            // though, cases have "Unusual Effect" descriptions and we want to exclude them
-                            if (!hasDescriptions || isUnique) {
-                                return null;
-                            }
-                            
-                            for (let i = 0; i < item.descriptions.length; i++) {
-                                const description = item.descriptions[i];
-                                const match = (
-                                    description.color === 'ffd700' &&
-                                    description.value.match(/^\u2605 Unusual Effect: (.+)$/)
-                                );
-                                
-                                if (match) {
-                                    return match[1];
-                                }
-                            }
                         }
                     }
                 }

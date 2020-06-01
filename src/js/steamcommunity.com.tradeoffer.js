@@ -1,9 +1,9 @@
 // @include /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
-function({WINDOW, $, Utils, shared, getStored, setStored}) {
+function({ WINDOW, $, Utils, shared, getStored, setStored }) {
     const urlParams = Utils.getURLParams();
     // these are never re-assigned in steam's source code
     // only updated
-    const {UserYou, UserThem, RefreshTradeStatus} = WINDOW;
+    const { UserYou, UserThem, RefreshTradeStatus } = WINDOW;
     const STEAMID = UserYou.strSteamId;
     const PARTNER_STEAMID = UserThem.strSteamId;
     const INVENTORY = WINDOW.g_rgAppContextData;
@@ -49,83 +49,10 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
          * @returns {(Object|null)} Summary of items, null if inventory is not properly loaded.
          */
         function evaluateItems($items, you) {
-            let warningIdentifiers = [
-                {
-                    name: 'rare TF2 key',
-                    appid: '440',
-                    check: function({appdata}) {
-                        // array of rare TF2 keys (defindexes)
-                        const rare440Keys = [
-                            '5049', '5067', '5072', '5073',
-                            '5079', '5081', '5628', '5631',
-                            '5632', '5713', '5716', '5717',
-                            '5762'
-                        ];
-                        const defindex = (
-                            appdata &&
-                            appdata.def_index
-                        );
-                        
-                        return Boolean(
-                            typeof defindex === 'string' &&
-                            rare440Keys.indexOf(defindex) !== -1
-                        );
-                    }
-                },
-                {
-                    name: 'uncraftable item',
-                    appid: '440',
-                    check: function({descriptions}) {
-                        const isUncraftable = (description) => {
-                            return Boolean(
-                                !description.color &&
-                                description.value === '( Not Usable in Crafting )'
-                            );
-                        };
-                        
-                        return Boolean(
-                            typeof descriptions === 'object' &&
-                            descriptions.some(isUncraftable)
-                        );
-                    }
-                },
-                {
-                    name: 'spelled item',
-                    appid: '440',
-                    check: function({descriptions}) {
-                        const isSpelled = (description) => {
-                            return Boolean(
-                                description.color === '7ea9d1' &&
-                                description.value.indexOf('(spell only active during event)') !== -1
-                            );
-                        };
-                        
-                        return Boolean(
-                            typeof descriptions === 'object' &&
-                            descriptions.some(isSpelled)
-                        );
-                    }
-                },
-                {
-                    name: 'restricted gift',
-                    appid: '753',
-                    check: function({fraudwarnings}) {
-                        const isRestricted = (text) => {
-                            return text.indexOf('restricted gift') !== -1;
-                        };
-                        
-                        return Boolean(
-                            typeof fraudwarnings === 'object' &&
-                            fraudwarnings.some(isRestricted)
-                        );
-                    }
-                }
-            ];
             const inventory = you ? INVENTORY : PARTNER_INVENTORY;
             const total = $items.length;
             let apps = {};
             let items = {};
-            let warnings = [];
             let valid = true;
             
             $items.toArray().forEach((itemEl) => {
@@ -134,7 +61,9 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
                 const [appid, contextid, assetid] = split;
                 const img = itemEl.getElementsByTagName('img')[0].getAttribute('src');
                 const quality = itemEl.style.borderColor;
-                const effect = itemEl.getAttribute('data-effect') || 'none';
+                const effect = itemEl.getAttribute('data-effect');
+                const uncraft = itemEl.classList.contains('uncraft');
+                const strange = itemEl.classList.contains('strange');
                 const item = (
                     inventory[appid] &&
                     inventory[appid].rgContexts[contextid].inventory.rgInventory[assetid]
@@ -152,38 +81,30 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
                     apps[appid] = [];
                 }
                 
-                items[img] = items[img] || {};
-                items[img][quality] = (items[img][quality] || {});
-                items[img][quality][effect] = (items[img][quality][effect] || 0) + 1;
-                apps[appid].push(assetid);
+                // create json for item
+                const json = Utils.omitEmpty({
+                    img,
+                    quality,
+                    effect,
+                    uncraft,
+                    strange
+                });
+                // use the json to create the key
+                const key = JSON.stringify(json);
                 
-                for (let i = warningIdentifiers.length - 1; i >= 0; i--) {
-                    const identifier = warningIdentifiers[i];
-                    const addWarning = Boolean(
-                        identifier.appid === appid &&
-                        identifier.check(item)
-                    );
-                    
-                    if (addWarning) {
-                        // add the warning
-                        warnings.push(`Offer contains ${identifier.name}(s).`);
-                        // remove the identifier so we do not check for it
-                        // or add it again after this point
-                        warningIdentifiers.splice(i, 1);
-                    }
-                }
+                items[key] = (items[key] || 0) + 1;
+                apps[appid].push(assetid);
             });
             
-            if (valid) {
-                return {
-                    total,
-                    apps,
-                    items,
-                    warnings
-                };
+            if (!valid) {
+                return null;
             }
             
-            return null;
+            return {
+                total,
+                apps,
+                items
+            };
         }
         
         /**
@@ -201,30 +122,42 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
             
             function getSummary(items, apps, steamid) {
                 // helper for getting effecting url
-                const {getEffectURL} = shared.offers.unusual;
+                const { getEffectURL } = shared.offers.unusual;
                 const ids = apps['440'];
                 let html = '';
                 
                 // super duper looper
-                for (let img in items) {
-                    for (let quality in items[img]) {
-                        for (let effect in items[img][quality]) {
-                            // generate the html for this item
-                            const count = items[img][quality][effect];
-                            const imgs = [`url(${img})`];
-                            
-                            if (effect !== 'none') {
-                                imgs.push(`url('${getEffectURL(effect)}')`);
-                            }
-                            
-                            const styles = `background-image: ${imgs.join(', ')}; border-color: ${quality};`;
-                            const badge = count > 1 ? `<span class="summary_badge">${count}</span>` : '&nbsp;';
-                            const itemHTML = `<span class="summary_item" style="${styles}">${badge}</span>`;
-                            
-                            // add the html for this item
-                            html += itemHTML;
-                        }
+                for (let key in items) {
+                    // generate the html for this item
+                    const {
+                        img,
+                        quality,
+                        effect,
+                        uncraft,
+                        strange
+                    } = JSON.parse(key);
+                    const count = items[key];
+                    const imgs = [`url(${img})`];
+                    const classes = ['summary_item'];
+                    
+                    if (effect !== 'none') {
+                        imgs.push(`url('${getEffectURL(effect)}')`);
                     }
+                    
+                    if (uncraft) {
+                        classes.push('uncraft');
+                    }
+                    
+                    if (strange) {
+                        classes.push('strange');
+                    }
+                    
+                    const styles = `background-image: ${imgs.join(', ')}; border-color: ${quality};`;
+                    const badge = count > 1 ? `<span class="summary_badge">${count}</span>` : '&nbsp;';
+                    const itemHTML = `<span class="${classes.join(' ')}" style="${styles}">${badge}</span>`;
+                    
+                    // add the html for this item
+                    html += itemHTML;
                 }
                 
                 if (ids) {
@@ -237,18 +170,6 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
                 }
                 
                 return html;
-            }
-            
-            function getWarnings() {
-                // no warnings to display
-                if (warnings.length === 0) {
-                    return '';
-                }
-                
-                // so that descriptions are always in the same order
-                const descriptions = warnings.sort().join('<br/>');
-                
-                return `<div class="warning">${descriptions}</span>`;
             }
             
             /**
@@ -264,14 +185,14 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
             }
             
             // unpack summary...
-            const {total, apps, items, warnings} = summary;
+            const { total, apps, items } = summary;
             const steamid = User.strSteamId;
             
             // build html piece-by-piece
             return [
                 getHeader(type, total),
                 getSummary(items, apps, steamid),
-                getWarnings(warnings)
+                ''
             ].join('');
         }
         
@@ -872,54 +793,26 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
         
         return getItems;
     }());
-    const unusual = (function() {
+    
+    // customizes the elements within this inventory
+    function customizeItems(inventory) {
         const {
-            effectsMap,
-            modifyElement,
-            getEffectName
-        } = shared.offers.unusual;
+            addAttributes
+        } = shared.offers.identifiers;
         
-        function addImagesToInventory(inventory) {
-            function addEffectImage(item, effectName) {
-                const value = effectsMap[effectName];
-                
-                if (value) {
-                    const {appid, contextid, id} = item;
-                    const elId = `item${appid}_${contextid}_${id}`;
-                    const itemEl = document.getElementById(elId);
-                    
-                    modifyElement(itemEl, value);
-                }
-            }
+        for (let assetid in inventory) {
+            const item = inventory[assetid];
             
-            for (let assetid in inventory) {
-                const item = inventory[assetid];
-                const effectName = getEffectName(item);
-                
-                if (effectName) {
-                    addEffectImage(item, effectName);
-                }
+            if (item.element) {
+                // add the attributes to this element
+                addAttributes(item, item.element);
             }
         }
-        
-        /**
-         * Get URL of image for effect.
-         * @param {Number} value - Value of effect.
-         * @returns {String} URL string.
-         */
-        function getEffectURL(value) {
-            return `https://backpack.tf/images/440/particles/${value}_188x188.png`;
-        }
-        
-        return {
-            addImagesToInventory,
-            getEffectURL
-        };
-    }());
+    }
     
     // perform actions
     // add elements to page
-    (function addElements() {
+    (function() {
         const controlsHTML = `
             <div id="controls">
                 <div class="trade_rule selectableNone"/>
@@ -1013,8 +906,9 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
             $getIDs: $('#btn_getids')
         };
     }());
+    
     // binds events to elements
-    (function bindEvents() {
+    (function() {
         // the user changed from one app to another
         function appChanged(app) {
             const $app = $(app);
@@ -1209,8 +1103,9 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
             keyPressed(e);
         });
     }());
+    
     // register inventory events
-    (function bindInventoryEvents() {
+    (function() {
         // this will force an inventory to load
         function forceInventory(appid, contextid) {
             TRADE_STATUS.them.assets.push({
@@ -1224,7 +1119,8 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
             RefreshTradeStatus(TRADE_STATUS, true);
         }
         
-        function addEffectImages(steamid, appid, contextid) {
+        // customizes the elements in the inventory
+        function customizeElements(steamid, appid, contextid) {
             const you = steamid === STEAMID;
             const inventory = you ? INVENTORY : PARTNER_INVENTORY;
             const contextInventory = inventory[appid].rgContexts[contextid].inventory.rgInventory;
@@ -1235,7 +1131,7 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
                 forceVisibility();
             }
             
-            unusual.addImagesToInventory(contextInventory);
+            customizeItems(contextInventory);
             // re-summarize
             tradeOfferWindow.summarize(you);
         }
@@ -1301,11 +1197,12 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
         });
         
         [STEAMID, PARTNER_STEAMID].forEach((steamid) => {
-            inventoryManager.register(steamid, '440', '2', addEffectImages);
+            inventoryManager.register(steamid, '440', '2', customizeElements);
         });
     }());
+    
     // observe changes to dom
-    (function observe() {
+    (function() {
         // observe changes to trade slots
         (function() {
             function observeSlots(slotsEl, you) {
@@ -1378,8 +1275,9 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
             page.btns.$listing.addClass(isSelling ? 'selling' : 'buying');
         }
     }());
+    
     // override page functions
-    (function overrides() {
+    (function() {
         // basically removes animation due to bugginess
         // also it's a bit faster
         WINDOW.EnsureSufficientTradeSlots = function(bYourSlots, cSlotsInUse, cCurrencySlotsInUse) {
@@ -1488,7 +1386,7 @@ function({WINDOW, $, Utils, shared, getStored, setStored}) {
                         return false;
                     }
                     
-                    const getItem = ({appid, contextid, assetid}) => {
+                    const getItem = ({ appid, contextid, assetid }) => {
                         return (
                             groups[appid] &&
                             groups[appid][contextid] &&

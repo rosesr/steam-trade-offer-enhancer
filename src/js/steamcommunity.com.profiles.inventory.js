@@ -1,38 +1,28 @@
 // @include /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/.*\/inventory/
-function({$, WINDOW, shared}) {
+function({ $, WINDOW, shared }) {
     const dom = {
-        tabContentInventory: document.getElementById('tabcontent_inventory'),
+        inventory: document.getElementById('inventories'),
         get: {
             tf2Inventory: () => {
-                const inventoriesList = document.querySelectorAll('#inventories > .inventory_ctn');
-                                                                  
-                return Array.from(inventoriesList).find((el) => {
-                    return /_440_2$/.test(el.id);
-                });
+                const userSteamId = WINDOW.UserYou.strSteamId;
+                const app440InventoryId = `inventory_${userSteamId}_440_2`;
+                
+                return document.getElementById(app440InventoryId);
             },
-            unusuals: () => {
+            items: () => {
                 const inventory = dom.get.tf2Inventory();
-                const isUnusualItem = (itemEl) => {
-                    const borderColor = itemEl.style.borderColor;
-                    const hasPurpleBorder = borderColor === 'rgb(134, 80, 172)';
-                    
-                    return Boolean(
-                        hasPurpleBorder
-                    );
-                };
                 
                 if (!inventory) {
                     return [];
                 }
                 
-                const itemsList = Array.from(inventory.querySelectorAll('.item:not(.unusual)'));
-                
-                return itemsList.select(isUnusualItem);
+                return Array.from(inventory.querySelectorAll('.item:not(.pendingItem)'));
             }
         }
     };
     
-    function onInventory() {
+    // tf2 inventory has changed
+    function onTF2InventoryChange() {
         function getAsset(assets, itemEl) {
             const [ , , assetid] = itemEl.id.split('_');
             
@@ -47,70 +37,63 @@ function({$, WINDOW, shared}) {
             WINDOW.g_rgAppContextData[440].rgContexts[2] &&
             WINDOW.g_rgAppContextData[440].rgContexts[2].inventory
         );
-        const hasInventory = Boolean(
-            inventory
-        );
         
-        if (!hasInventory) {
-            // no tf2 assets
+        // no tf2 inventory in contexts
+        if (!inventory) {
+            // stop
             return;
         }
         
         const {
-            getEffectName,
-            getEffectValue,
-            modifyElement
-        } = shared.offers.unusual;
+            addAttributes
+        } = shared.offers.identifiers;
         const assets = inventory.m_rgAssets;
-        const itemsList = dom.get.unusuals();
-        const addUnusualEffect = (itemEl) => {
-            const asset = getAsset(assets, itemEl);
-            const effectName = getEffectName(asset.description);
-            const effectValue = getEffectValue(effectName);
-            // the value for the effect was found
-            const hasValue = Boolean(
-                effectValue
-            );
-            
-            if (!hasValue) {
-                return;
-            }
-            
-            // we can modify it
-            modifyElement(itemEl, effectValue);
-        };
+        const itemsList = dom.get.items();
         
-        itemsList.forEach(addUnusualEffect);
+        itemsList.forEach((itemEl) => {
+            const asset = getAsset(assets, itemEl);
+            // item is stored in description of asset
+            const item = asset.description;
+            
+            // add the attributes to this item
+            addAttributes(item, itemEl);
+        });
+    }
+    
+    // a tf2 inventory was loaded on the page
+    function onTF2Inventory(tf2Inventory) {
+        const observer = new MutationObserver(onTF2InventoryChange);
+        
+        // observe changes to the tf2 inventory
+        observer.observe(tf2Inventory, {
+            childList: true
+        });
+        
+        onTF2InventoryChange();
     }
     
     // observe changes to dom
-    (function observe() {
-        const inventoryEl = dom.tabContentInventory;
-        const hasInventory = Boolean(
-            inventoryEl
-        );
-        
-        // no tf2 inventory on page
-        if (!hasInventory) {
-            return;
-        }
-        
-        const observer = new MutationObserver((mutations) => {
+    (function() {
+        const inventoryEl = dom.inventory;
+        // wait for the tf2 inventory to be loaded
+        const observer = new MutationObserver(() => {
             const tf2Inventory = dom.get.tf2Inventory();
             const tf2InventoryVisible = Boolean(
                 tf2Inventory &&
                 tf2Inventory.style.display !== 'none'
             );
+            const itemsList = dom.get.items();
             
-            if (tf2InventoryVisible) {
-                console.log('yes');
-                onInventory();
+            // make sure the inventory is visible and it contains visible items
+            if (tf2InventoryVisible && itemsList.length > 0) {
+                // disconnect the observer
+                observer.disconnect();
+                onTF2Inventory(tf2Inventory);
             }
         });
         
         observer.observe(inventoryEl, {
             childList: true,
-            characterData: false,
             subtree: true
         });
     }());

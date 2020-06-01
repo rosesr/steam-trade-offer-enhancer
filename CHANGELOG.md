@@ -172,3 +172,10 @@
 ## [1.9.8] - 2019-03-18
 ### Fixed
 - Bug with effect images.
+
+## [2.0.0] - 2019-05-31
+### Added
+- Strange, spell, and uncraftable attributes are now visible on items.
+
+### Removed
+- Summary warnings as they are no longer very necessary.

@@ -1,5 +1,5 @@
 // @include /^https?:\/\/(.*\.)?backpack\.tf(:\d+)?\/(?:id|profiles)\/.*/
-function({$, Utils, getStored, setStored}) {
+function({ $, Utils, getStored, setStored }) {
     const urlParams = Utils.getURLParams();
     const stored = {
         key_price: 'getInventory.key_price'
@@ -31,12 +31,8 @@ function({$, Utils, getStored, setStored}) {
             // get the value of keys in metal
             // this should be very approximate, but close enough
             function getKeyValue() {
-                /**
-                 * Get pricing details from item.
-                 * @param {Object} item - DOM element of data.
-                 * @returns {Object} Object containing price details.
-                 */
-                function parseItem(item) {
+                // gets pricing details from item element
+                function parseItem(itemEl) {
                     // parse price string e.g. "1-1.2 keys"
                     function parseString(string) {
                         const match = string.match(/^([\d\.]*)[\-\u2013]?([\d\.]*)? (\w*)/); 
@@ -80,7 +76,7 @@ function({$, Utils, getStored, setStored}) {
                         }
                     }
                     
-                    const data = item.dataset;
+                    const data = itemEl.dataset;
                     const details = {};
                     
                     if (data.price) {
@@ -162,11 +158,7 @@ function({$, Utils, getStored, setStored}) {
                 page.get.$firstSelectPage().trigger('click');
             }
             
-            /**
-             * Select items on page matching IDs.
-             * @param {Array} ids - Array of IDs to select.
-             * @returns {undefined}
-             */
+            // selects items in inventory matching the given ids
             function selectItemsById(ids) {
                 const $backpack = page.$backpack;
                 const $items = $backpack.find('li.item:not(.spacer)');
@@ -181,11 +173,8 @@ function({$, Utils, getStored, setStored}) {
                 page.$inventorySortMenu.find(`li[data-value="${key}"]`).trigger('click');
             }
             
-            /**
-             * Change comparison.
-             * @param {Boolean} up - Go to next day if true, previous day if false.
-             * @returns {undefined}
-             */
+            // changes the comparison
+            // set up to true to go up a day, otherwise go down
             function compare(up) {
                 const $from = page.get.$inventoryCmpFrom();
                 const $to = page.get.$inventoryCmpTo();

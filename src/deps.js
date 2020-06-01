@@ -12,14 +12,30 @@ const Utils = {
      * @returns {Object} Object containing url parameters e.g. {'item': 'Fruit Shoot'}
      */
     getURLParams: function() {
-        let params = {};
-        let pattern = /[?&]+([^=&]+)=([^&]*)/gi;
+        const params = {};
+        const pattern = /[?&]+([^=&]+)=([^&]*)/gi;
         
         window.location.search.replace(pattern, (str, key, value) => {
             params[key] = decodeURIComponent(value);
         });
         
         return params;
+    },
+    /**
+     * Omits keys with values that are empty from object.
+     * @param {Object} obj - Object to omit values from.
+     * @returns {Object} Object with null, undefined, or empty string values omitted.
+     */
+    omitEmpty: function(obj) {
+        const result = {};
+        
+        for (let k in obj) {
+            if (obj[k] != null && obj[k] !== '') {
+                result[k] = obj[k];
+            }
+        }
+        
+        return result;
     },
     /**
      * Get difference between two arrays
@@ -67,10 +83,12 @@ const Utils = {
      * @returns {undefined}
      */
     execHotKey: function(e, hotKeys) {
-        let isTextField = /textarea|select/i.test(e.target.nodeName) || 
-            ['number', 'text'].indexOf(e.target.type) !== -1;
-        let code = e.keyCode || e.which;
-        let method = hotKeys[code];
+        const isTextField = (
+            /textarea|select/i.test(e.target.nodeName) || 
+            ['number', 'text'].indexOf(e.target.type) !== -1
+        );
+        const code = e.keyCode || e.which;
+        const method = hotKeys[code];
         
         if (!isTextField && method) {
             method();
@@ -118,7 +136,7 @@ const Utils = {
      * @returns {undefined}
      */
     copyToClipboard: function(str) {
-        let el = document.createElement('textarea');
+        const el = document.createElement('textarea');
         
         el.value = str;
         document.body.appendChild(el);
@@ -132,21 +150,21 @@ const Utils = {
      * @returns {(Object|null)} Object of currencies if string is valid
      */
     stringToCurrencies: function(string) {
-        let prices = string.split(',');
-        let currencies = {};
-        let currencyNames = {
+        const prices = string.split(',');
+        const currencies = {};
+        const currencyNames = {
             'metal': 'metal',
             'ref': 'metal',
             'keys': 'keys',
             'key': 'keys'
         };
         
-        for (let i = 0, n = prices.length; i < n; i++) {
+        for (let i = 0; i < prices.length; i++) {
             // match currencies - the first value is the amount
             // the second value is the currency name
-            let match = prices[i].trim().match(/^([\d\.]*) (\w*)$/i);
-            let currency = currencyNames[match[2]];
-            let value = parseFloat(match[1]);
+            const match = prices[i].trim().match(/^([\d\.]*) (\w*)$/i);
+            const currency = currencyNames[match[2]];
+            const value = parseFloat(match[1]);
             
             if (currency) {
                 currencies[currency] = value;
@@ -156,21 +174,217 @@ const Utils = {
             }
         }
         
-        if (Object.keys(currencies).length) {
-            return currencies;
-        } else {
+        if (Object.keys(currencies).length === 0) {
             return null;
         }
+        
+        return currencies;
     }
 };
 // these are shared between page scripts
 const shared = {
     // offers shared between offers pages
     offers: {
+        // helpers for identifying items
+        identifiers: {
+            // gets the effect name from an item
+            // item is an asset from steam
+            getEffectName: function(item) {
+                const hasDescriptions = typeof item.descriptions === 'object';
+                const isUnique = (item.name_color || '').toUpperCase() === '7D6D00';
+                
+                // unique items should probably never have effects
+                // though, cases have "Unusual Effect" descriptions and we want to exclude them
+                if (!hasDescriptions || isUnique) {
+                    return null;
+                }
+                
+                for (let i = 0; i < item.descriptions.length; i++) {
+                    const description = item.descriptions[i];
+                    const match = (
+                        description.color === 'ffd700' &&
+                        description.value.match(/^\u2605 Unusual Effect: (.+)$/)
+                    );
+                    
+                    if (match) {
+                        return match[1];
+                    }
+                }
+            },
+            // checks whether the item is strange or not (strange unusuals, strange genuine, etc.)
+            // item is an asset from steam
+            isStrange: function(item) {
+                const pattern = /^Strange ([0-9\w\s\\(\)'\-]+) \- ([0-9\w\s\(\)'-]+): (\d+)\n?$/;
+                // is a strange quality item
+                const isStrange = (item.name_color || '').toUpperCase() === 'CF6A32';
+                
+                return Boolean(
+                    // we don't mean strange quality items
+                    !isStrange &&
+                    // the name must begin with strange
+                    /^Strange /.test(item.market_hash_name) &&
+                    // the item has a type
+                    item.type &&
+                    // the type matches a pattern similar to (Strange Hat - Points Scored: 0)
+                    pattern.test(item.type)
+                );
+            },
+            // checks if the item is a rare tf2 key
+            isRareTF2Key: function(item) {
+                const { appdata } = item;
+                // array of rare TF2 keys (defindexes)
+                const rare440Keys = [
+                    '5049',
+                    '5067',
+                    '5072',
+                    '5073',
+                    '5079',
+                    '5081',
+                    '5628',
+                    '5631',
+                    '5632',
+                    '5713',
+                    '5716',
+                    '5717',
+                    '5762'
+                ];
+                const defindex = (
+                    appdata &&
+                    appdata.def_index
+                );
+                
+                return Boolean(
+                    typeof defindex === 'string' &&
+                    rare440Keys.indexOf(defindex) !== -1
+                );
+            },
+            // detects certain attributes from an item
+            // this is used heavily and should be as optimized as possible
+            getItemAttributes: function(item) {
+                const hasDescriptions = typeof item.descriptions === 'object';
+                const isUnique = (item.name_color || '').toUpperCase() === '7D6D00';
+                const { isStrange } = shared.offers.identifiers;
+                const { getEffectValue } = shared.offers.unusual;
+                const attributes = {};
+                
+                if (isStrange(item)) {
+                    attributes.strange = true;
+                }
+                
+                // no descriptions, so don't go any further
+                if (!hasDescriptions) {
+                    return attributes;
+                }
+                
+                for (let i = 0; i < item.descriptions.length; i++) {
+                    const description = item.descriptions[i];
+                    const matchesEffect = (
+                        attributes.effectName === undefined &&
+                        // this will exclude cases with "Unusual Effect" descriptions
+                        !isUnique &&
+                        description.color === 'ffd700' &&
+                        description.value.match(/^\u2605 Unusual Effect: (.+)$/)
+                    );
+                    const isSpelled = Boolean(
+                        attributes.spelled === undefined &&
+                        description.color === '7ea9d1' &&
+                        description.value.indexOf('(spell only active during event)') !== -1
+                    );
+                    const isUncraftable = Boolean(
+                        !description.color &&
+                        /^\( Not.* Usable in Crafting/.test(description.value)
+                    );
+                    
+                    if (matchesEffect) {
+                        const effectName = matchesEffect[1];
+                        
+                        attributes.effect = getEffectValue(effectName);
+                    }
+                    
+                    if (isSpelled) {
+                        attributes.spelled = true;
+                    }
+                    
+                    if (isUncraftable) {
+                        attributes.uncraft = true;
+                    }
+                }
+                
+                return attributes;
+            },
+            // adds attributes to item element
+            addAttributes: function(item, itemEl) {
+                const {
+                    getItemAttributes,
+                    addAttributesToElement
+                } = shared.offers.identifiers;
+                const attributes = getItemAttributes(item);
+                
+                addAttributesToElement(itemEl, attributes);
+            },
+            // adds attributes to item element
+            addAttributesToElement: function(itemEl, attributes) {
+                // already checked
+                if (itemEl.hasAttribute('data-checked')) {
+                    return;
+                }
+                
+                const {
+                    getEffectURL
+                } = shared.offers.unusual;
+                const iconsEl = document.createElement('div');
+                const classes = [];
+                
+                if (attributes.effect) {
+                    const versions = {
+                        // the 188x188 version does not work for purple confetti
+                        7: '380x380'
+                    };
+                    const version = versions[attributes.effect];
+                    const url = getEffectURL(attributes.effect, version);
+                    
+                    itemEl.setAttribute('data-effect', attributes.effect);
+                    itemEl.style.backgroundImage = `url('${url}')`;
+                    classes.push('unusual');
+                }
+                
+                if (attributes.strange) {
+                    classes.push('strange');
+                }
+                
+                if (attributes.uncraft) {
+                    classes.push('uncraft');
+                }
+                
+                if (attributes.spelled) {
+                    // construct icon for spells
+                    const spellEl = document.createElement('img');
+                    
+                    spellEl.setAttribute('src', 'https://scrap.tf/img/spell.png');
+                    spellEl.classList.add('spell');
+                    
+                    // add it to the icons element
+                    iconsEl.appendChild(spellEl);
+                }
+                
+                // check if we added any icons to the element holding icons
+                if (iconsEl.children.length > 0) {
+                    iconsEl.classList.add('icons');
+                    
+                    // then insert the element containing icons
+                    itemEl.appendChild(iconsEl);
+                }
+                
+                if (classes.length > 0) {
+                    itemEl.classList.add(...classes);
+                }
+                
+                itemEl.setAttribute('data-checked', 1);
+            }
+        },
         // unusual helper functions
         unusual: {
-            // all unusual effects as of nov 23, 19
-            // missing 2019 taunt effects since they are not availabe on backpack.tf yet
+            // all unusual effects as of the winter 2019 update
             effectsMap: {
                 'Green Confetti': 6,
                 'Purple Confetti': 7,
@@ -347,7 +561,6 @@ const shared = {
                 const url = shared.offers.unusual.getEffectURL(value, version);
                 
                 itemEl.style.backgroundImage = `url('${url}')`;
-                itemEl.setAttribute('data-effect', value);
                 itemEl.classList.add('unusual');
             },
             /**
@@ -366,33 +579,6 @@ const shared = {
              */
             getEffectURL: function(value, version) {
                 return `https://backpack.tf/images/440/particles/${value}_${version || '188x188'}.png`;
-            },
-            /**
-             * Gets the effect name from an item.
-             * @param {Object} item - Item from steam.
-             * @returns {(String|null|undefined)} Effect name, if available.
-             */
-            getEffectName: function(item) {
-                const hasDescriptions = typeof item.descriptions === 'object';
-                const isUnique = (item.name_color || '').toUpperCase() === '7D6D00';
-                
-                // unique items should probably never have effects
-                // though, cases have "Unusual Effect" descriptions and we want to exclude them
-                if (!hasDescriptions || isUnique) {
-                    return null;
-                }
-                
-                for (let i = 0; i < item.descriptions.length; i++) {
-                    const description = item.descriptions[i];
-                    const match = (
-                        description.color === 'ffd700' &&
-                        description.value.match(/^\u2605 Unusual Effect: (.+)$/)
-                    );
-                    
-                    if (match) {
-                        return match[1];
-                    }
-                }
             }
         }
     }
