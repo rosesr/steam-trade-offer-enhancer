@@ -161,21 +161,28 @@
 ### Added
 - Effect images on inventory pages.
 
-## [1.9.6] - 2019-03-16
+## [1.9.6] - 2020-03-16
 ### Added
 - Smissmas 2019 effects.
 
-## [1.9.7] - 2019-03-16
+## [1.9.7] - 2020-03-16
 ### Fixed
 - Something minor.
 
-## [1.9.8] - 2019-03-18
+## [1.9.8] - 2020-03-18
 ### Fixed
 - Bug with effect images.
 
-## [2.0.0] - 2019-05-31
+## [2.0.0] - 2020-05-31
 ### Added
 - Strange, spell, and uncraftable attributes are now visible on items.
 
 ### Removed
 - Summary warnings as they are no longer very necessary.
+
+## [2.0.1] - 2020-06-03
+### Added
+- Attributes are now displayed on profile and market listings pages.
+
+### Changed
+- Unusual items on tradeoffers pages are checked first.

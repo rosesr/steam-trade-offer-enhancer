@@ -36,7 +36,7 @@ Fork of [Steam Trade Offer Enhancer by scholtzm](https://github.com/scholtzm/ste
 - Strangified items (e.g. "Strange Unusual" items) have an orange colored border.
 - Spelled items display an icon.
 
-### ```https://steamcommunity.com/profiles/<steamid>/inventory```<br/>```https://steamcommunity.com/id/<id>/inventory```
+### ```https://steamcommunity.com/profiles/<steamid>/inventory```<br/>```https://steamcommunity.com/id/<id>/inventory```<br/>```https://steamcommunity.com/profiles/<steamid>```<br/>```https://steamcommunity.com/id/<id>```<br/>```https://steamcommunity.com/market/listings/440/<market_hash_name>```
 - Unusual effect images are displayed on items with effects.
 - Uncraftable items are displayed with a dashed border.
 - Strangified items (e.g. "Strange Unusual" items) have an orange colored border.

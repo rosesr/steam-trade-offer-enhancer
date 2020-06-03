@@ -187,30 +187,6 @@ const shared = {
     offers: {
         // helpers for identifying items
         identifiers: {
-            // gets the effect name from an item
-            // item is an asset from steam
-            getEffectName: function(item) {
-                const hasDescriptions = typeof item.descriptions === 'object';
-                const isUnique = (item.name_color || '').toUpperCase() === '7D6D00';
-                
-                // unique items should probably never have effects
-                // though, cases have "Unusual Effect" descriptions and we want to exclude them
-                if (!hasDescriptions || isUnique) {
-                    return null;
-                }
-                
-                for (let i = 0; i < item.descriptions.length; i++) {
-                    const description = item.descriptions[i];
-                    const match = (
-                        description.color === 'ffd700' &&
-                        description.value.match(/^\u2605 Unusual Effect: (.+)$/)
-                    );
-                    
-                    if (match) {
-                        return match[1];
-                    }
-                }
-            },
             // checks whether the item is strange or not (strange unusuals, strange genuine, etc.)
             // item is an asset from steam
             isStrange: function(item) {
@@ -584,6 +560,147 @@ const shared = {
     }
 };
 
+// adds attribute display properties to a list of hoverable items (e.g. in trade offers or steam profiles)
+// itemsList is of type NodeList or Array
+function addAttributesToHoverItems(itemsList) {
+    if (itemsList.length === 0) {
+        // nothing to do
+        return;
+    }
+    
+    const {
+        getItemAttributes,
+        addAttributesToElement
+    } = shared.offers.identifiers;
+    // cache for classinfo data
+    const attributeCache = (function() {
+        // the key to set/get values from
+        const CACHE_INDEX = VERSION + '.getTradeOffers.cache';
+        // this will hold our cached values
+        let values = {};
+        
+        function save() {
+            let value = JSON.stringify(values);
+            
+            if (value.length >= 10000) {
+                // clear cache when it becomes too big
+                values = {};
+                value = '{}'; 
+            }
+            
+            setStored(CACHE_INDEX, value);
+        }
+        
+        function store(key, value) {
+            values[key] = value;
+        }
+        
+        function get() {
+            values = JSON.parse(getStored(CACHE_INDEX) || '{}');
+        }
+        
+        function key(itemEl) {
+            const classinfo = itemEl.getAttribute('data-economy-item');
+            const [ , , classid] = classinfo.split('/');
+            
+            return classid;
+        }
+        
+        function getValue(key) {
+            return values[key];
+        }
+        
+        return {
+            save,
+            get,
+            store,
+            key,
+            getValue
+        };
+    }());
+    let itemsChecked = 0;
+    let cacheSaveTimer;
+    
+    // first load from cache
+    attributeCache.get();
+    
+    Array.from(itemsList)
+        // process unusual items first
+        .sort((a, b) => {
+            const getValue = (itemEl) => {
+                const unusualBorderColor = 'rgb(134, 80, 172)';
+                const { borderColor } = itemEl.style;
+                
+                if (borderColor === unusualBorderColor) {
+                    return 1;
+                }
+                
+                return -1;
+            };
+            
+            return getValue(b) - getValue(a);
+        })
+        .forEach((itemEl) => {
+            // get hover for item to get item information
+            // this requires an ajax request
+            // classinfo format - "classinfo/440/192234515/3041550843"
+            const classinfo = itemEl.getAttribute('data-economy-item');
+            const [ , appid, classid, instanceid] = classinfo.split('/');
+            
+            // only check tf2 items
+            if (appid !== '440') {
+                // continue
+                return;
+            }
+            
+            const cacheKey = attributeCache.key(itemEl);
+            const cachedValue = attributeCache.getValue(cacheKey);
+            
+            if (cachedValue) {
+                // use cached attributes
+                addAttributesToElement(itemEl, cachedValue);
+            } else {
+                const itemStr = [appid, classid, instanceid].join('/');
+                const uri = `economy/itemclasshover/${itemStr}?content_only=1&l=english`;
+                const req = new WINDOW.CDelayedAJAXData(uri, 0);
+                // this will space requests
+                const delay = 5000 * Math.floor(itemsChecked / 50);
+                
+                itemsChecked++;
+                
+                setTimeout(() => {
+                    // we use this to get class info (names, descriptions) for each item
+                    // it would be much more efficient to use GetAssetClassInfo/v0001 but it requires an API key
+                    // this may be considered later
+                    req.RunWhenAJAXReady(() => {
+                        // 3rd element is a script tag containing item data
+                        const html = req.m_$Data[2].innerHTML;
+                        // extract the json for item with pattern...
+                        const match = html.match(/BuildHover\(\s*?\'economy_item_[A-z0-9]+\',\s*?(.*)\s\);/);
+                        
+                        try {
+                            // then parse it
+                            const item = JSON.parse(match[1]);
+                            const attributes = getItemAttributes(item);
+                            
+                            // then add the attributes to the element
+                            addAttributesToElement(itemEl, attributes);
+                            
+                            // store the attributes in cache
+                            attributeCache.store(cacheKey, attributes);
+                            
+                            // then save it n ms after the last completed request
+                            clearTimeout(cacheSaveTimer);
+                            cacheSaveTimer = setTimeout(attributeCache.save, 1000);
+                        } catch (e) {
+                            
+                        }
+                    });
+                }, delay);
+            }
+        });
+}
+
 // set a stored value
 function setStored(name, value) {
     GM_setValue(name, value);
@@ -599,6 +716,7 @@ return {
     $,
     Utils,
     shared,
+    addAttributesToHoverItems,
     setStored,
     getStored
 };

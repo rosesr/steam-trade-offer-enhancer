@@ -1,64 +1,8 @@
 // @include /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/.*\/tradeoffers/
-function({ $, VERSION, WINDOW, shared, getStored, setStored }) {
+function({ $, VERSION, WINDOW, addAttributesToHoverItems }) {
     const dom = {
         offers: document.getElementsByClassName('tradeoffer')
     };
-    const stored = {
-        cache: VERSION + '.getTradeOffers.cache'
-    };
-    const attributeCache = (function() {
-        // THE KEY TO SET/GET VALUES FROM
-        const CACHE_INDEX = stored.cache;
-        // this will hold our cached values
-        let values = {};
-        
-        function save() {
-            let value = JSON.stringify(values);
-            
-            if (value.length >= 10000) {
-                // clear cache when it becomes too big
-                values = {};
-                value = '{}'; 
-            }
-            
-            setStored(CACHE_INDEX, value);
-        }
-        
-        function store(key, value) {
-            values[key] = value;
-        }
-        
-        function get() {
-            values = JSON.parse(getStored(CACHE_INDEX) || '{}');
-        }
-        
-        function key(itemEl) {
-            const classinfo = itemEl.getAttribute('data-economy-item');
-            const [ , , classid] = classinfo.split('/');
-            
-            return classid;
-        }
-        
-        function getValue(key) {
-            return values[key];
-        }
-        
-        return {
-            save,
-            get,
-            store,
-            key,
-            getValue
-        };
-    }());
-    const {
-        getItemAttributes,
-        addAttributesToElement
-    } = shared.offers.identifiers;
-    
-    // perform actions
-    // get the cached effect values for stored classinfos
-    attributeCache.get();
     
     // modify each trade offer
     Array.from(dom.offers).forEach((offerEl) => {
@@ -127,7 +71,7 @@ function({ $, VERSION, WINDOW, shared, getStored, setStored }) {
             reportButtonEl.remove();
         }());
         
-        // summarize the offers
+        // summarize the offer
         (function() {
             const itemsList = offerEl.getElementsByClassName('tradeoffer_item_list');
             
@@ -174,7 +118,7 @@ function({ $, VERSION, WINDOW, shared, getStored, setStored }) {
                     const clearEl = document.createElement('div');
                     // get summarized items and sort elements by properties
                     // most of this stuff should be fairly optimized
-                    const items = (function getItems() {
+                    const items = (function() {
                         const getSort = (key, item) => {
                             let index, value;
                             
@@ -191,32 +135,6 @@ function({ $, VERSION, WINDOW, shared, getStored, setStored }) {
                             }
                             
                             return index;
-                        };
-                        const buildIndex = () => {
-                            const getItem = (classinfo, itemEl) => {
-                                return {
-                                    classinfo: classinfo,
-                                    app: classinfo.replace('classinfo/', '').split('/')[0],
-                                    color: itemEl.style.borderColor
-                                };
-                            };
-                            const items = itemsArr.reduce((result, itemEl) => {
-                                const classinfo = getClassInfo(itemEl);
-                                
-                                if (result[classinfo]) {
-                                    result[classinfo].count += 1;
-                                } else {
-                                    result[classinfo] = {
-                                        el: itemEl,
-                                        count: 1,
-                                        props: getItem(classinfo, itemEl)
-                                    };
-                                }
-                                
-                                return result;
-                            }, {});
-                            
-                            return items;
                         };
                         // some parameters to sort by
                         const sorts = {
@@ -245,7 +163,34 @@ function({ $, VERSION, WINDOW, shared, getStored, setStored }) {
                                 'rgb(125, 109, 0)'
                             ]
                         };
-                        const items = Object.values(buildIndex());
+                        // this reduces the items on the page and puts them into
+                        // a group which contains the count for that item
+                        const items = (function() {
+                            const getItem = (classinfo, itemEl) => {
+                                return {
+                                    classinfo,
+                                    app: classinfo.replace('classinfo/', '').split('/')[0],
+                                    color: itemEl.style.borderColor
+                                };
+                            };
+                            const items = itemsArr.reduce((result, itemEl) => {
+                                const classinfo = getClassInfo(itemEl);
+                                
+                                if (result[classinfo]) {
+                                    result[classinfo].count += 1;
+                                } else {
+                                    result[classinfo] = {
+                                        el: itemEl,
+                                        count: 1,
+                                        props: getItem(classinfo, itemEl)
+                                    };
+                                }
+                                
+                                return result;
+                            }, {});
+                            
+                            return Object.values(items);
+                        }());
                         const sorted = items.sort((a, b) => {
                             let index = 0;
                             
@@ -304,70 +249,14 @@ function({ $, VERSION, WINDOW, shared, getStored, setStored }) {
     
     // add attributes to images
     (function() {
-        let itemsChecked = 0;
-        let cacheSaveTimer;
+        const itemsList = document.getElementsByClassName('trade_item');
         
-        Array.from(document.getElementsByClassName('trade_item')).forEach((itemEl) => {
-            // get hover for item to get item information
-            // this requires an ajax request
-            // classinfo format - "classinfo/440/192234515/3041550843"
-            const classinfo = itemEl.getAttribute('data-economy-item');
-            const [ , appid, classid, instanceid] = classinfo.split('/');
-            
-            // only check tf2 items
-            if (appid !== '440') {
-                // continue
-                return;
-            }
-            
-            const cacheKey = attributeCache.key(itemEl);
-            const cachedValue = attributeCache.getValue(cacheKey);
-            
-            if (cachedValue) {
-                // use cached attributes
-                addAttributesToElement(itemEl, cachedValue);
-            } else {
-                const itemStr = [appid, classid, instanceid].join('/');
-                const uri = `economy/itemclasshover/${itemStr}?content_only=1&l=english`;
-                const req = new WINDOW.CDelayedAJAXData(uri, 0);
-                // this will space requests
-                const delay = 5000 * Math.floor(itemsChecked / 50);
-                
-                itemsChecked++;
-                
-                setTimeout(() => {
-                    req.RunWhenAJAXReady(() => {
-                        // 3rd element is a script tag containing item data
-                        const html = req.m_$Data[2].innerHTML;
-                        // extract the json for item with pattern...
-                        const match = html.match(/BuildHover\(\s*?\'economy_item_[A-z0-9]+\',\s*?(.*)\s\);/);
-                        
-                        try {
-                            // then parse it
-                            const item = JSON.parse(match[1]);
-                            const attributes = getItemAttributes(item);
-                            
-                            // then add the attributes to the element
-                            addAttributesToElement(itemEl, attributes);
-                            
-                            // store the attributes in cache
-                            attributeCache.store(cacheKey, attributes);
-                            
-                            // then save it n ms after the last completed request
-                            clearTimeout(cacheSaveTimer);
-                            cacheSaveTimer = setTimeout(attributeCache.save, 1000);
-                        } catch (e) {
-                            
-                        }
-                    });
-                }, delay);
-            }
-        });
+        addAttributesToHoverItems(itemsList);
     }());
     
     // add the button to decline all trade offers
     (function() {
-        const { ShowConfirmDialog } = WINDOW;
+        const { ShowConfirmDialog, ActOnTradeOffer } = WINDOW;
         // gets an array of id's of all active trade offers on page
         const getActiveTradeOfferIDs = () => {
             const getTradeOfferIDs = (tradeOffersList) => {
@@ -382,8 +271,7 @@ function({ $, VERSION, WINDOW, shared, getStored, setStored }) {
             return getTradeOfferIDs(activeTradeOffersList);
         };
         // declines any number of trades by their id
-        // first parameter is an object which provides method to act on trade offer
-        const declineOffers = ({ ActOnTradeOffer }, tradeOfferIDs) => {
+        const declineOffers = (tradeOfferIDs) => {
             const declineOffer = (tradeOfferID) => {
                 ActOnTradeOffer(tradeOfferID, 'decline', 'Trade Declined', 'Decline Trade');
             };
@@ -433,7 +321,7 @@ function({ $, VERSION, WINDOW, shared, getStored, setStored }) {
                 if (yes(strButton)) {
                     const tradeOfferIDs = getActiveTradeOfferIDs();
                     
-                    declineOffers(WINDOW, tradeOfferIDs);
+                    declineOffers(tradeOfferIDs);
                     $declineAllButton.remove();
                 }
             });

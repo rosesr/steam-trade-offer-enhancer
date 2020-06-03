@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.0.0
+// @version     2.0.1
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -13,7 +13,9 @@
 // @run-at      document-end
 // @include     /^https?:\/\/(.*\.)?backpack\.tf(:\\d+)?\/(stats|classifieds).*/
 // @include     /^https?:\/\/(.*\.)?backpack\.tf(:\d+)?\/(?:id|profiles)\/.*/
-// @include     /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/.*\/inventory/
+// @include     /^https?:\/\/steamcommunity\.com\/market\/listings\/440\/.*/
+// @include     /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/.*\/inventory(\/$|\?|$)/
+// @include     /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/[A-z0-9]+(\/$|\?|$)/
 // @include     /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/.*\/tradeoffers/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
 // ==/UserScript==
@@ -473,7 +475,149 @@
         },
         {
             includes: [
-                /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/.*\/inventory/
+                /^https?:\/\/steamcommunity\.com\/market\/listings\/440\/.*/
+            ],
+            styles: `
+                .unusual {
+                    background-position: center !important;
+                    background-size: 100% 100%;
+                    background-repeat: no-repeat;
+                }
+                
+                .uncraft {
+                    border-style: dashed !important;
+                }
+                
+                .strange:before {
+                    content: " ";
+                    position: absolute;
+                    z-index: 1;
+                    top: 2px;
+                    left: 2px;
+                    right: 2px;
+                    bottom: 2px;
+                    border: 2px solid rgba(207, 106, 50, 0.5);
+                    /* box-shadow: inset 0px 0px 12px 0px #CF6A32; */
+                }
+                
+                .icons img.spell {
+                    width: 14px;
+                    height: 20px;
+                }
+                
+                .icons {
+                    position: absolute;
+                    bottom: 3px;
+                    left: 3px;
+                    width: 100%;
+                    height: 20px;
+                }
+            `,
+            fn: function({ WINDOW, shared }) {
+                const dom = {
+                    resultsRows: document.getElementById('searchResultsRows')
+                };
+                
+                // gets the appid, contextid and assetid from an element
+                function getItem(rowEl) {
+                    const buyButtonLinkEl = rowEl.querySelector('div.market_listing_buy_button a');
+                    
+                    if (!buyButtonLinkEl) {
+                        return null;
+                    }
+                    
+                    const href = buyButtonLinkEl.getAttribute('href');
+                    const params = href.replace('javascript:BuyMarketListing', '').replace(/[\,\(/) ]/g, '');
+                    const split = params.split(/'(.+?)'/g).filter(a => a);
+                    const [ , , appid, contextid, assetid] = split;
+                    
+                    return {
+                        appid,
+                        contextid,
+                        assetid
+                    };
+                }
+                
+                // gets an item's asset
+                function getAsset({ appid, contextid, assetid }) {
+                    const assets = WINDOW.g_rgAssets;
+                    
+                    return (
+                        assets[appid] &&
+                        assets[appid][contextid] &&
+                        assets[appid][contextid][assetid]
+                    );
+                }
+                
+                function addAttributesToResults() {
+                    const rowsList = dom.resultsRows.getElementsByClassName('market_listing_row');
+                    const {
+                        addAttributes
+                    } = shared.offers.identifiers;
+                    
+                    Array.from(rowsList).forEach((rowEl) => {
+                        // extract item data from this row
+                        const item = getItem(rowEl);
+                        // get asset data from that data
+                        const asset = (
+                            item &&
+                            getAsset(item)
+                        );
+                        
+                        // no asset for whatever reason
+                        if (asset == null) {
+                            // continue
+                            return;
+                        }
+                        
+                        // get the container for the item image
+                        const itemImgContainerEl = rowEl.querySelector('div.market_listing_item_img_container');
+                        // get the image element
+                        const itemImgEl = itemImgContainerEl.querySelector('img.market_listing_item_img');
+                        // we create another element to wrap the image element in for styling purposes
+                        const itemEl = (function() {
+                            const el = document.createElement('div');
+                            const imgSrc = itemImgEl.getAttribute('src');
+                            
+                            el.classList.add('market_listing_item_img', 'economy_item_hoverable');
+                            el.setAttribute('style', itemImgEl.getAttribute('style'));
+                            el.style.position = 'relative';
+                            el.style.backgroundImage = `url('${imgSrc}')`;
+                            
+                            return el;
+                        }());
+                        
+                        // remove attributes from the image element
+                        itemImgEl.classList.remove('market_listing_item_img');
+                        itemImgEl.style.backgroundColor = 'transparent';
+                        
+                        // add it to our newly created item elment
+                        itemEl.appendChild(itemImgEl);
+                        
+                        // then add it to the container - this effectively wraps the image in another element
+                        itemImgContainerEl.appendChild(itemEl);
+                        
+                        // now add the attributes to this item
+                        addAttributes(asset, itemEl);
+                    });
+                }
+                
+                // add the initial elements
+                addAttributesToResults();
+                
+                // observe changes to rows
+                (function() {
+                    const observer = new MutationObserver(addAttributesToResults);
+                    
+                    observer.observe(dom.resultsRows, {
+                        childList: true
+                    });
+                }());
+            }
+        },
+        {
+            includes: [
+                /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/.*\/inventory(\/$|\?|$)/
             ],
             styles: `
                 .unusual {
@@ -613,6 +757,53 @@
         },
         {
             includes: [
+                /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/[A-z0-9]+(\/$|\?|$)/
+            ],
+            styles: `
+                .unusual {
+                    background-position: center !important;
+                    background-size: 100% 100%;
+                    background-repeat: no-repeat;
+                }
+                
+                .uncraft {
+                    border-style: dashed !important;
+                }
+                
+                .strange:before {
+                    content: " ";
+                    position: absolute;
+                    z-index: 1;
+                    top: 2px;
+                    left: 2px;
+                    right: 2px;
+                    bottom: 2px;
+                    border: 2px solid rgba(207, 106, 50, 0.5);
+                    /* box-shadow: inset 0px 0px 12px 0px #CF6A32; */
+                }
+                
+                .icons img.spell {
+                    width: 14px;
+                    height: 20px;
+                }
+                
+                .icons {
+                    position: absolute;
+                    bottom: 6px;
+                    left: 6px;
+                    width: 100%;
+                    height: 20px;
+                }
+            `,
+            fn: function({ addAttributesToHoverItems }) {
+                const itemsList = document.getElementsByClassName('item_showcase_item');
+                
+                // add attributes to images - so easy!
+                addAttributesToHoverItems(itemsList);
+            }
+        },
+        {
+            includes: [
                 /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/.*\/tradeoffers/
             ],
             styles: `
@@ -735,66 +926,10 @@
                     text-align: center;
                 }
             `,
-            fn: function({ $, VERSION, WINDOW, shared, getStored, setStored }) {
+            fn: function({ $, VERSION, WINDOW, addAttributesToHoverItems }) {
                 const dom = {
                     offers: document.getElementsByClassName('tradeoffer')
                 };
-                const stored = {
-                    cache: VERSION + '.getTradeOffers.cache'
-                };
-                const attributeCache = (function() {
-                    // THE KEY TO SET/GET VALUES FROM
-                    const CACHE_INDEX = stored.cache;
-                    // this will hold our cached values
-                    let values = {};
-                    
-                    function save() {
-                        let value = JSON.stringify(values);
-                        
-                        if (value.length >= 10000) {
-                            // clear cache when it becomes too big
-                            values = {};
-                            value = '{}'; 
-                        }
-                        
-                        setStored(CACHE_INDEX, value);
-                    }
-                    
-                    function store(key, value) {
-                        values[key] = value;
-                    }
-                    
-                    function get() {
-                        values = JSON.parse(getStored(CACHE_INDEX) || '{}');
-                    }
-                    
-                    function key(itemEl) {
-                        const classinfo = itemEl.getAttribute('data-economy-item');
-                        const [ , , classid] = classinfo.split('/');
-                        
-                        return classid;
-                    }
-                    
-                    function getValue(key) {
-                        return values[key];
-                    }
-                    
-                    return {
-                        save,
-                        get,
-                        store,
-                        key,
-                        getValue
-                    };
-                }());
-                const {
-                    getItemAttributes,
-                    addAttributesToElement
-                } = shared.offers.identifiers;
-                
-                // perform actions
-                // get the cached effect values for stored classinfos
-                attributeCache.get();
                 
                 // modify each trade offer
                 Array.from(dom.offers).forEach((offerEl) => {
@@ -863,7 +998,7 @@
                         reportButtonEl.remove();
                     }());
                     
-                    // summarize the offers
+                    // summarize the offer
                     (function() {
                         const itemsList = offerEl.getElementsByClassName('tradeoffer_item_list');
                         
@@ -910,7 +1045,7 @@
                                 const clearEl = document.createElement('div');
                                 // get summarized items and sort elements by properties
                                 // most of this stuff should be fairly optimized
-                                const items = (function getItems() {
+                                const items = (function() {
                                     const getSort = (key, item) => {
                                         let index, value;
                                         
@@ -927,32 +1062,6 @@
                                         }
                                         
                                         return index;
-                                    };
-                                    const buildIndex = () => {
-                                        const getItem = (classinfo, itemEl) => {
-                                            return {
-                                                classinfo: classinfo,
-                                                app: classinfo.replace('classinfo/', '').split('/')[0],
-                                                color: itemEl.style.borderColor
-                                            };
-                                        };
-                                        const items = itemsArr.reduce((result, itemEl) => {
-                                            const classinfo = getClassInfo(itemEl);
-                                            
-                                            if (result[classinfo]) {
-                                                result[classinfo].count += 1;
-                                            } else {
-                                                result[classinfo] = {
-                                                    el: itemEl,
-                                                    count: 1,
-                                                    props: getItem(classinfo, itemEl)
-                                                };
-                                            }
-                                            
-                                            return result;
-                                        }, {});
-                                        
-                                        return items;
                                     };
                                     // some parameters to sort by
                                     const sorts = {
@@ -981,7 +1090,34 @@
                                             'rgb(125, 109, 0)'
                                         ]
                                     };
-                                    const items = Object.values(buildIndex());
+                                    // this reduces the items on the page and puts them into
+                                    // a group which contains the count for that item
+                                    const items = (function() {
+                                        const getItem = (classinfo, itemEl) => {
+                                            return {
+                                                classinfo,
+                                                app: classinfo.replace('classinfo/', '').split('/')[0],
+                                                color: itemEl.style.borderColor
+                                            };
+                                        };
+                                        const items = itemsArr.reduce((result, itemEl) => {
+                                            const classinfo = getClassInfo(itemEl);
+                                            
+                                            if (result[classinfo]) {
+                                                result[classinfo].count += 1;
+                                            } else {
+                                                result[classinfo] = {
+                                                    el: itemEl,
+                                                    count: 1,
+                                                    props: getItem(classinfo, itemEl)
+                                                };
+                                            }
+                                            
+                                            return result;
+                                        }, {});
+                                        
+                                        return Object.values(items);
+                                    }());
                                     const sorted = items.sort((a, b) => {
                                         let index = 0;
                                         
@@ -1040,70 +1176,14 @@
                 
                 // add attributes to images
                 (function() {
-                    let itemsChecked = 0;
-                    let cacheSaveTimer;
+                    const itemsList = document.getElementsByClassName('trade_item');
                     
-                    Array.from(document.getElementsByClassName('trade_item')).forEach((itemEl) => {
-                        // get hover for item to get item information
-                        // this requires an ajax request
-                        // classinfo format - "classinfo/440/192234515/3041550843"
-                        const classinfo = itemEl.getAttribute('data-economy-item');
-                        const [ , appid, classid, instanceid] = classinfo.split('/');
-                        
-                        // only check tf2 items
-                        if (appid !== '440') {
-                            // continue
-                            return;
-                        }
-                        
-                        const cacheKey = attributeCache.key(itemEl);
-                        const cachedValue = attributeCache.getValue(cacheKey);
-                        
-                        if (cachedValue) {
-                            // use cached attributes
-                            addAttributesToElement(itemEl, cachedValue);
-                        } else {
-                            const itemStr = [appid, classid, instanceid].join('/');
-                            const uri = `economy/itemclasshover/${itemStr}?content_only=1&l=english`;
-                            const req = new WINDOW.CDelayedAJAXData(uri, 0);
-                            // this will space requests
-                            const delay = 5000 * Math.floor(itemsChecked / 50);
-                            
-                            itemsChecked++;
-                            
-                            setTimeout(() => {
-                                req.RunWhenAJAXReady(() => {
-                                    // 3rd element is a script tag containing item data
-                                    const html = req.m_$Data[2].innerHTML;
-                                    // extract the json for item with pattern...
-                                    const match = html.match(/BuildHover\(\s*?\'economy_item_[A-z0-9]+\',\s*?(.*)\s\);/);
-                                    
-                                    try {
-                                        // then parse it
-                                        const item = JSON.parse(match[1]);
-                                        const attributes = getItemAttributes(item);
-                                        
-                                        // then add the attributes to the element
-                                        addAttributesToElement(itemEl, attributes);
-                                        
-                                        // store the attributes in cache
-                                        attributeCache.store(cacheKey, attributes);
-                                        
-                                        // then save it n ms after the last completed request
-                                        clearTimeout(cacheSaveTimer);
-                                        cacheSaveTimer = setTimeout(attributeCache.save, 1000);
-                                    } catch (e) {
-                                        
-                                    }
-                                });
-                            }, delay);
-                        }
-                    });
+                    addAttributesToHoverItems(itemsList);
                 }());
                 
                 // add the button to decline all trade offers
                 (function() {
-                    const { ShowConfirmDialog } = WINDOW;
+                    const { ShowConfirmDialog, ActOnTradeOffer } = WINDOW;
                     // gets an array of id's of all active trade offers on page
                     const getActiveTradeOfferIDs = () => {
                         const getTradeOfferIDs = (tradeOffersList) => {
@@ -1118,8 +1198,7 @@
                         return getTradeOfferIDs(activeTradeOffersList);
                     };
                     // declines any number of trades by their id
-                    // first parameter is an object which provides method to act on trade offer
-                    const declineOffers = ({ ActOnTradeOffer }, tradeOfferIDs) => {
+                    const declineOffers = (tradeOfferIDs) => {
                         const declineOffer = (tradeOfferID) => {
                             ActOnTradeOffer(tradeOfferID, 'decline', 'Trade Declined', 'Decline Trade');
                         };
@@ -1169,7 +1248,7 @@
                             if (yes(strButton)) {
                                 const tradeOfferIDs = getActiveTradeOfferIDs();
                                 
-                                declineOffers(WINDOW, tradeOfferIDs);
+                                declineOffers(tradeOfferIDs);
                                 $declineAllButton.remove();
                             }
                         });
@@ -2722,7 +2801,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.0.0';
+            const VERSION = '2.0.1';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
@@ -2912,30 +2991,6 @@
                 offers: {
                     // helpers for identifying items
                     identifiers: {
-                        // gets the effect name from an item
-                        // item is an asset from steam
-                        getEffectName: function(item) {
-                            const hasDescriptions = typeof item.descriptions === 'object';
-                            const isUnique = (item.name_color || '').toUpperCase() === '7D6D00';
-                            
-                            // unique items should probably never have effects
-                            // though, cases have "Unusual Effect" descriptions and we want to exclude them
-                            if (!hasDescriptions || isUnique) {
-                                return null;
-                            }
-                            
-                            for (let i = 0; i < item.descriptions.length; i++) {
-                                const description = item.descriptions[i];
-                                const match = (
-                                    description.color === 'ffd700' &&
-                                    description.value.match(/^\u2605 Unusual Effect: (.+)$/)
-                                );
-                                
-                                if (match) {
-                                    return match[1];
-                                }
-                            }
-                        },
                         // checks whether the item is strange or not (strange unusuals, strange genuine, etc.)
                         // item is an asset from steam
                         isStrange: function(item) {
@@ -3309,6 +3364,147 @@
                 }
             };
             
+            // adds attribute display properties to a list of hoverable items (e.g. in trade offers or steam profiles)
+            // itemsList is of type NodeList or Array
+            function addAttributesToHoverItems(itemsList) {
+                if (itemsList.length === 0) {
+                    // nothing to do
+                    return;
+                }
+                
+                const {
+                    getItemAttributes,
+                    addAttributesToElement
+                } = shared.offers.identifiers;
+                // cache for classinfo data
+                const attributeCache = (function() {
+                    // the key to set/get values from
+                    const CACHE_INDEX = VERSION + '.getTradeOffers.cache';
+                    // this will hold our cached values
+                    let values = {};
+                    
+                    function save() {
+                        let value = JSON.stringify(values);
+                        
+                        if (value.length >= 10000) {
+                            // clear cache when it becomes too big
+                            values = {};
+                            value = '{}'; 
+                        }
+                        
+                        setStored(CACHE_INDEX, value);
+                    }
+                    
+                    function store(key, value) {
+                        values[key] = value;
+                    }
+                    
+                    function get() {
+                        values = JSON.parse(getStored(CACHE_INDEX) || '{}');
+                    }
+                    
+                    function key(itemEl) {
+                        const classinfo = itemEl.getAttribute('data-economy-item');
+                        const [ , , classid] = classinfo.split('/');
+                        
+                        return classid;
+                    }
+                    
+                    function getValue(key) {
+                        return values[key];
+                    }
+                    
+                    return {
+                        save,
+                        get,
+                        store,
+                        key,
+                        getValue
+                    };
+                }());
+                let itemsChecked = 0;
+                let cacheSaveTimer;
+                
+                // first load from cache
+                attributeCache.get();
+                
+                Array.from(itemsList)
+                    // process unusual items first
+                    .sort((a, b) => {
+                        const getValue = (itemEl) => {
+                            const unusualBorderColor = 'rgb(134, 80, 172)';
+                            const { borderColor } = itemEl.style;
+                            
+                            if (borderColor === unusualBorderColor) {
+                                return 1;
+                            }
+                            
+                            return -1;
+                        };
+                        
+                        return getValue(b) - getValue(a);
+                    })
+                    .forEach((itemEl) => {
+                        // get hover for item to get item information
+                        // this requires an ajax request
+                        // classinfo format - "classinfo/440/192234515/3041550843"
+                        const classinfo = itemEl.getAttribute('data-economy-item');
+                        const [ , appid, classid, instanceid] = classinfo.split('/');
+                        
+                        // only check tf2 items
+                        if (appid !== '440') {
+                            // continue
+                            return;
+                        }
+                        
+                        const cacheKey = attributeCache.key(itemEl);
+                        const cachedValue = attributeCache.getValue(cacheKey);
+                        
+                        if (cachedValue) {
+                            // use cached attributes
+                            addAttributesToElement(itemEl, cachedValue);
+                        } else {
+                            const itemStr = [appid, classid, instanceid].join('/');
+                            const uri = `economy/itemclasshover/${itemStr}?content_only=1&l=english`;
+                            const req = new WINDOW.CDelayedAJAXData(uri, 0);
+                            // this will space requests
+                            const delay = 5000 * Math.floor(itemsChecked / 50);
+                            
+                            itemsChecked++;
+                            
+                            setTimeout(() => {
+                                // we use this to get class info (names, descriptions) for each item
+                                // it would be much more efficient to use GetAssetClassInfo/v0001 but it requires an API key
+                                // this may be considered later
+                                req.RunWhenAJAXReady(() => {
+                                    // 3rd element is a script tag containing item data
+                                    const html = req.m_$Data[2].innerHTML;
+                                    // extract the json for item with pattern...
+                                    const match = html.match(/BuildHover\(\s*?\'economy_item_[A-z0-9]+\',\s*?(.*)\s\);/);
+                                    
+                                    try {
+                                        // then parse it
+                                        const item = JSON.parse(match[1]);
+                                        const attributes = getItemAttributes(item);
+                                        
+                                        // then add the attributes to the element
+                                        addAttributesToElement(itemEl, attributes);
+                                        
+                                        // store the attributes in cache
+                                        attributeCache.store(cacheKey, attributes);
+                                        
+                                        // then save it n ms after the last completed request
+                                        clearTimeout(cacheSaveTimer);
+                                        cacheSaveTimer = setTimeout(attributeCache.save, 1000);
+                                    } catch (e) {
+                                        
+                                    }
+                                });
+                            }, delay);
+                        }
+                    });
+            }
+            
             // set a stored value
             function setStored(name, value) {
                 GM_setValue(name, value);
@@ -3325,6 +3521,7 @@
                 $,
                 Utils,
                 shared,
+                addAttributesToHoverItems,
                 setStored,
                 getStored
             };
