@@ -186,3 +186,7 @@
 
 ### Changed
 - Unusual items on tradeoffers pages are checked first.
+
+## [2.0.2] - 2020-06-04
+### Fixed
+- CSS positioning for spell icons on Steam profile pages.

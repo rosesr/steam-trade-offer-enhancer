@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.0.1
+// @version     2.0.2
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -793,6 +793,10 @@
                     left: 6px;
                     width: 100%;
                     height: 20px;
+                }
+                
+                .item_showcase_item {
+                    line-height: inherit !important;
                 }
             `,
             fn: function({ addAttributesToHoverItems }) {
@@ -2801,7 +2805,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.0.1';
+            const VERSION = '2.0.2';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
