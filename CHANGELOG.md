@@ -190,3 +190,7 @@
 ## [2.0.2] - 2020-06-04
 ### Fixed
 - CSS positioning for spell icons on Steam profile pages.
+
+## [2.0.3] - 2020-06-04
+### Fixed
+- Images for summaries on spelled items. 

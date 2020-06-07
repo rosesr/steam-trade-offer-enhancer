@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.0.2
+// @version     2.0.3
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -1427,7 +1427,8 @@
                             // array containing item identifiers e.g. ['440', '2', '123']
                             const split = itemEl.id.replace('item', '').split('_'); 
                             const [appid, contextid, assetid] = split;
-                            const img = itemEl.getElementsByTagName('img')[0].getAttribute('src');
+                            // get the icon image
+                            const img = itemEl.querySelector(':scope > img').getAttribute('src');
                             const quality = itemEl.style.borderColor;
                             const effect = itemEl.getAttribute('data-effect');
                             const uncraft = itemEl.classList.contains('uncraft');
@@ -2805,7 +2806,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.0.2';
+            const VERSION = '2.0.3';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    

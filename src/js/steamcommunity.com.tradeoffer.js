@@ -59,7 +59,8 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
                 // array containing item identifiers e.g. ['440', '2', '123']
                 const split = itemEl.id.replace('item', '').split('_'); 
                 const [appid, contextid, assetid] = split;
-                const img = itemEl.getElementsByTagName('img')[0].getAttribute('src');
+                // get the icon image
+                const img = itemEl.querySelector(':scope > img').getAttribute('src');
                 const quality = itemEl.style.borderColor;
                 const effect = itemEl.getAttribute('data-effect');
                 const uncraft = itemEl.classList.contains('uncraft');
