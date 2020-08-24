@@ -194,3 +194,7 @@
 ## [2.0.3] - 2020-06-04
 ### Fixed
 - Images for summaries on spelled items. 
+
+## [2.0.4] - 2020-08-23
+### Fixed
+- Effect images.

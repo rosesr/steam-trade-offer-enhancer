@@ -312,12 +312,7 @@ const shared = {
                 const classes = [];
                 
                 if (attributes.effect) {
-                    const versions = {
-                        // the 188x188 version does not work for purple confetti
-                        7: '380x380'
-                    };
-                    const version = versions[attributes.effect];
-                    const url = getEffectURL(attributes.effect, version);
+                    const url = getEffectURL(attributes.effect);
                     
                     itemEl.setAttribute('data-effect', attributes.effect);
                     itemEl.style.backgroundImage = `url('${url}')`;
@@ -529,12 +524,7 @@ const shared = {
              * @returns {undefined}
              */
             modifyElement: function(itemEl, value) {
-                const versions = {
-                    // the 188x188 version does not work for purple confetti
-                    7: '380x380'
-                };
-                const version = versions[value];
-                const url = shared.offers.unusual.getEffectURL(value, version);
+                const url = shared.offers.unusual.getEffectURL(value);
                 
                 itemEl.style.backgroundImage = `url('${url}')`;
                 itemEl.classList.add('unusual');
@@ -550,11 +540,10 @@ const shared = {
             /**
              * Gets URL of image for effect.
              * @param {Number} value - Value of effect.
-             * @param {Number} [version] - Size of image from backpack.tf.
              * @returns {String} URL string
              */
-            getEffectURL: function(value, version) {
-                return `https://backpack.tf/images/440/particles/${value}_${version || '188x188'}.png`;
+            getEffectURL: function(value) {
+                return `https://scrap.tf/img/particles_440/${value}_380x380.png`;
             }
         }
     }

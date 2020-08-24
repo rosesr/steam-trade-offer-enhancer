@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.0.3
+// @version     2.0.4
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -19,6 +19,7 @@
 // @include     /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/.*\/tradeoffers/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
 // ==/UserScript==
+
 
 (function() {
     'use strict';
@@ -2806,7 +2807,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.0.3';
+            const VERSION = '2.0.4';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
@@ -3121,12 +3122,7 @@
                             const classes = [];
                             
                             if (attributes.effect) {
-                                const versions = {
-                                    // the 188x188 version does not work for purple confetti
-                                    7: '380x380'
-                                };
-                                const version = versions[attributes.effect];
-                                const url = getEffectURL(attributes.effect, version);
+                                const url = getEffectURL(attributes.effect);
                                 
                                 itemEl.setAttribute('data-effect', attributes.effect);
                                 itemEl.style.backgroundImage = `url('${url}')`;
@@ -3338,12 +3334,7 @@
                          * @returns {undefined}
                          */
                         modifyElement: function(itemEl, value) {
-                            const versions = {
-                                // the 188x188 version does not work for purple confetti
-                                7: '380x380'
-                            };
-                            const version = versions[value];
-                            const url = shared.offers.unusual.getEffectURL(value, version);
+                            const url = shared.offers.unusual.getEffectURL(value);
                             
                             itemEl.style.backgroundImage = `url('${url}')`;
                             itemEl.classList.add('unusual');
@@ -3359,11 +3350,10 @@
                         /**
                          * Gets URL of image for effect.
                          * @param {Number} value - Value of effect.
-                         * @param {Number} [version] - Size of image from backpack.tf.
                          * @returns {String} URL string
                          */
-                        getEffectURL: function(value, version) {
-                            return `https://backpack.tf/images/440/particles/${value}_${version || '188x188'}.png`;
+                        getEffectURL: function(value) {
+                            return `https://scrap.tf/img/particles_440/${value}_380x380.png`;
                         }
                     }
                 }
@@ -3530,6 +3520,7 @@
                 setStored,
                 getStored
             };
+            
         }());
         const script = scripts.find(({includes}) => {
             return includes.some((pattern) => {
