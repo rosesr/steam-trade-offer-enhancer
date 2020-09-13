@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.0.4
+// @version     2.0.5
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -1398,7 +1398,8 @@
                         $imgThrobber: () => $('img[src$="throbber.gif"]:visible'),
                         $appSelectImg: () => $('#appselect_activeapp img'),
                         $deadItem: () => $('a[href$="_undefined"]'),
-                        $tradeItemBox: () => page.$tradeBoxContents.find('div.trade_item_box')
+                        $tradeItemBox: () => page.$tradeBoxContents.find('div.trade_item_box'),
+                        $changeOfferButton: () => $('#modify_trade_offer_opts div.content')
                     }
                 };
                 // keys for stored values
@@ -2416,9 +2417,13 @@
                     ) {
                         const canModify = Boolean(
                             // an inventory is not selected
-                            (/(\d+)_(\d+)$/.test(page.get.$inventory().attr('id'))) ||
-                            // the offer cannot be modified
-                            page.get.$modifyTradeOffer().length === 0
+                            (
+                                (/(\d+)_(\d+)$/.test(page.get.$inventory().attr('id'))) ||
+                                // the offer cannot be modified
+                                page.get.$modifyTradeOffer().length === 0
+                            ) &&
+                            // the "Change offer" button is not visible
+                            !page.get.$changeOfferButton().is(':visible')
                         );
                         
                         // we can modify the items in the offer based on the current window state
@@ -2807,7 +2812,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.0.4';
+            const VERSION = '2.0.5';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
@@ -3325,7 +3330,16 @@
                             'Arctic Aurora': 3033,
                             'Winter Spirit': 3034,
                             'Festive Spirit': 3035,
-                            'Magical Spirit': 3036
+                            'Magical Spirit': 3036,
+                            'Verdatica': 147,
+                            'Aromatica': 148,
+                            'Chromatica': 149,
+                            'Prismatica': 150,
+                            'Bee Swarm': 151,
+                            'Frisky Fireflies': 152,
+                            'Smoldering Spirits': 153,
+                            'Wandering Wisps': 154,
+                            'Kaleidoscope': 155
                         },
                         /**
                          * Includes effect image in element.

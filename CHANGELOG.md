@@ -198,3 +198,10 @@
 ## [2.0.4] - 2020-08-23
 ### Fixed
 - Effect images.
+
+## [2.0.5] - 2020-09-12
+### Added
+- Summer 2020 effects.
+
+### Fixed
+- Bug that allowed you to modify existing offers outside of the counter-offer state.

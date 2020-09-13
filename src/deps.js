@@ -515,7 +515,16 @@ const shared = {
                 'Arctic Aurora': 3033,
                 'Winter Spirit': 3034,
                 'Festive Spirit': 3035,
-                'Magical Spirit': 3036
+                'Magical Spirit': 3036,
+                'Verdatica': 147,
+                'Aromatica': 148,
+                'Chromatica': 149,
+                'Prismatica': 150,
+                'Bee Swarm': 151,
+                'Frisky Fireflies': 152,
+                'Smoldering Spirits': 153,
+                'Wandering Wisps': 154,
+                'Kaleidoscope': 155
             },
             /**
              * Includes effect image in element.

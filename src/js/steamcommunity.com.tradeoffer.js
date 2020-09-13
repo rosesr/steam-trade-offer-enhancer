@@ -29,7 +29,8 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
             $imgThrobber: () => $('img[src$="throbber.gif"]:visible'),
             $appSelectImg: () => $('#appselect_activeapp img'),
             $deadItem: () => $('a[href$="_undefined"]'),
-            $tradeItemBox: () => page.$tradeBoxContents.find('div.trade_item_box')
+            $tradeItemBox: () => page.$tradeBoxContents.find('div.trade_item_box'),
+            $changeOfferButton: () => $('#modify_trade_offer_opts div.content')
         }
     };
     // keys for stored values
@@ -1047,9 +1048,13 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
         ) {
             const canModify = Boolean(
                 // an inventory is not selected
-                (/(\d+)_(\d+)$/.test(page.get.$inventory().attr('id'))) ||
-                // the offer cannot be modified
-                page.get.$modifyTradeOffer().length === 0
+                (
+                    (/(\d+)_(\d+)$/.test(page.get.$inventory().attr('id'))) ||
+                    // the offer cannot be modified
+                    page.get.$modifyTradeOffer().length === 0
+                ) &&
+                // the "Change offer" button is not visible
+                !page.get.$changeOfferButton().is(':visible')
             );
             
             // we can modify the items in the offer based on the current window state
