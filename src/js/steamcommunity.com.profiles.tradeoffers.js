@@ -279,12 +279,11 @@ function({ $, VERSION, WINDOW, addAttributesToHoverItems }) {
             tradeOfferIDs.forEach(declineOffer);
         };
         
-        // jquery elements
-        const $newTradeOfferBtn = $('.new_trade_offer_btn');
+        const newTradeOfferBtnEl = document.querySelector('.new_trade_offer_btn');
         const canAct = Boolean(
             // this should probably always be there...
             // but maybe not always
-            $newTradeOfferBtn.length > 0 &&
+            newTradeOfferBtnEl &&
             // page must have active trade offers
             getActiveTradeOfferIDs().length > 0
         );

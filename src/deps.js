@@ -192,17 +192,34 @@ const shared = {
             isStrange: function(item) {
                 const pattern = /^Strange ([0-9\w\s\\(\)'\-]+) \- ([0-9\w\s\(\)'-]+): (\d+)\n?$/;
                 // is a strange quality item
-                const isStrange = (item.name_color || '').toUpperCase() === 'CF6A32';
-                
-                return Boolean(
-                    // we don't mean strange quality items
-                    !isStrange &&
+                const isStrangeQuality = (item.name_color || '').toUpperCase() === 'CF6A32';
+                const hasStrangeItemType = Boolean(
                     // the name must begin with strange
                     /^Strange /.test(item.market_hash_name) &&
                     // the item has a type
                     item.type &&
                     // the type matches a pattern similar to (Strange Hat - Points Scored: 0)
                     pattern.test(item.type)
+                );
+                const hasStatClock = (item.descriptions || []).some((description) => {
+                    return Boolean(
+                        // has an orange color
+                        (
+                            description.color &&
+                            description.color.toUpperCase() === 'CF6A32'
+                        ) &&
+                        // and matches this text
+                        'Strange Stat Clock Attached' === description.value.trim()
+                    );
+                });
+                
+                return Boolean(
+                    // we don't mean strange quality items
+                    !isStrangeQuality &&
+                    (
+                        hasStrangeItemType ||
+                        hasStatClock
+                    )
                 );
             },
             // checks if the item is a rare tf2 key

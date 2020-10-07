@@ -205,3 +205,7 @@
 
 ### Fixed
 - Bug that allowed you to modify existing offers outside of the counter-offer state.
+
+## [2.0.6] - 2020-10-06
+### Fixed
+- Strange weapons not showing strange border.

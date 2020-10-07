@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.0.5
+// @version     2.0.6
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -15,7 +15,7 @@
 // @include     /^https?:\/\/(.*\.)?backpack\.tf(:\d+)?\/(?:id|profiles)\/.*/
 // @include     /^https?:\/\/steamcommunity\.com\/market\/listings\/440\/.*/
 // @include     /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/.*\/inventory(\/$|\?|$)/
-// @include     /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/[A-z0-9]+(\/$|\?|$)/
+// @include     /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/[^\/]+(\/$|\?|$)/
 // @include     /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/.*\/tradeoffers/
 // @include     /^https?:\/\/steamcommunity\.com\/tradeoffer.*/
 // ==/UserScript==
@@ -758,7 +758,7 @@
         },
         {
             includes: [
-                /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/[A-z0-9]+(\/$|\?|$)/
+                /^https?:\/\/steamcommunity\.com\/(?:id|profiles)\/[^\/]+(\/$|\?|$)/
             ],
             styles: `
                 .unusual {
@@ -1211,12 +1211,11 @@
                         tradeOfferIDs.forEach(declineOffer);
                     };
                     
-                    // jquery elements
-                    const $newTradeOfferBtn = $('.new_trade_offer_btn');
+                    const newTradeOfferBtnEl = document.querySelector('.new_trade_offer_btn');
                     const canAct = Boolean(
                         // this should probably always be there...
                         // but maybe not always
-                        $newTradeOfferBtn.length > 0 &&
+                        newTradeOfferBtnEl &&
                         // page must have active trade offers
                         getActiveTradeOfferIDs().length > 0
                     );
@@ -2812,7 +2811,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.0.5';
+            const VERSION = '2.0.6';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
@@ -3007,17 +3006,34 @@
                         isStrange: function(item) {
                             const pattern = /^Strange ([0-9\w\s\\(\)'\-]+) \- ([0-9\w\s\(\)'-]+): (\d+)\n?$/;
                             // is a strange quality item
-                            const isStrange = (item.name_color || '').toUpperCase() === 'CF6A32';
-                            
-                            return Boolean(
-                                // we don't mean strange quality items
-                                !isStrange &&
+                            const isStrangeQuality = (item.name_color || '').toUpperCase() === 'CF6A32';
+                            const hasStrangeItemType = Boolean(
                                 // the name must begin with strange
                                 /^Strange /.test(item.market_hash_name) &&
                                 // the item has a type
                                 item.type &&
                                 // the type matches a pattern similar to (Strange Hat - Points Scored: 0)
                                 pattern.test(item.type)
+                            );
+                            const hasStatClock = (item.descriptions || []).some((description) => {
+                                return Boolean(
+                                    // has an orange color
+                                    (
+                                        description.color &&
+                                        description.color.toUpperCase() === 'CF6A32'
+                                    ) &&
+                                    // and matches this text
+                                    'Strange Stat Clock Attached' === description.value.trim()
+                                );
+                            });
+                            
+                            return Boolean(
+                                // we don't mean strange quality items
+                                !isStrangeQuality &&
+                                (
+                                    hasStrangeItemType ||
+                                    hasStatClock
+                                )
                             );
                         },
                         // checks if the item is a rare tf2 key
