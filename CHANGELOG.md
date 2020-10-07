@@ -209,3 +209,7 @@
 ## [2.0.6] - 2020-10-06
 ### Fixed
 - Strange weapons not showing strange border.
+
+## [2.0.7] - 2020-10-07
+### Fixed
+- The decline all active offers button not appearing on page.

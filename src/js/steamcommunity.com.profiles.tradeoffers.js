@@ -293,35 +293,36 @@ function({ $, VERSION, WINDOW, addAttributesToHoverItems }) {
             return;
         }
         
-        const $declineAllButton = $(`
-            <div class="btn_darkred_white_innerfade btn_medium decline_active_button">
-                <span>
-                    Decline All Active...
-                </span>
-            </div>
-        `);
+        const declineAllButtonEl = (function() {
+            const el = document.createElement('div');
+            const textEl = document.createElement('span');
+            
+            el.appendChild(textEl);
+            el.classList.add('btn_darkred_white_innerfade', 'btn_medium', 'decline_active_button');
+            textEl.textContent = 'Decline All Active...';
+            
+            return el;
+        }());
         
         // add the button... after the "New Trade Offer" button
-        $declineAllButton.insertAfter($newTradeOfferBtn);
+        newTradeOfferBtnEl.parentNode.insertBefore(declineAllButtonEl, newTradeOfferBtnEl.nextSibling);
         
         // add the handler to show the dialog on click
-        $declineAllButton.click(() => {
-            // yes
-            const yes = (str) => {
-                return str === 'OK';
-            };
-            
+        declineAllButtonEl.addEventListener('click', () => {
             ShowConfirmDialog(
                 'Decline Active',
                 'Are you sure you want to decline all active trade offers?',
                 'Decline Trade Offers',
                 null
-            ).done((strButton) => {
-                if (yes(strButton)) {
+            ).done((str) => {
+                // yes
+                const responseIsYes = str === 'OK';
+                
+                if (responseIsYes) {
                     const tradeOfferIDs = getActiveTradeOfferIDs();
                     
                     declineOffers(tradeOfferIDs);
-                    $declineAllButton.remove();
+                    declineAllButtonEl.remove();
                 }
             });
         });
