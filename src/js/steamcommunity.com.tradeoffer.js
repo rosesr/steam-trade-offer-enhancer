@@ -162,16 +162,16 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
                     html += itemHTML;
                 }
                 
-                if (ids) {
-                    // if tf2 items are in offer
-                    // return summary items with backpack.tf link wrapped around 
-                    const url = `https://backpack.tf/profiles/${steamid}?select=${ids.join(',')}`;
-                    
-                    // wrap the html
-                    html = `<a title="Open on backpack.tf" href="${url}" target="_blank">${html}</a>`;
+                if (!ids) {
+                    return html;
                 }
                 
-                return html;
+                // if tf2 items are in offer
+                // return summary items with backpack.tf link wrapped around 
+                const url = `https://backpack.tf/profiles/${steamid}?select=${ids.join(',')}`;
+                
+                // wrap the html
+                return `<a title="Open on backpack.tf" href="${url}" target="_blank">${html}</a>`;
             }
             
             /**
@@ -1267,8 +1267,9 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
             });
         }());
     }());
+    
     // configure state
-    (function configure() {
+    (function () {
         tradeOfferWindow.userChanged(page.get.$activeInventoryTab());
         
         if (getStored(stored.id_visible) == 1) {

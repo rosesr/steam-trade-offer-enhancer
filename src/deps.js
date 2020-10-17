@@ -541,7 +541,26 @@ const shared = {
                 'Frisky Fireflies': 152,
                 'Smoldering Spirits': 153,
                 'Wandering Wisps': 154,
-                'Kaleidoscope': 155
+                'Kaleidoscope': 155,
+                'Green Giggler':156,
+                'Laugh-O-Lantern': 157,
+                'Plum Prankster': 158,
+                'Pyroland Nightmare': 159,
+                'Gravelly Ghoul': 160,
+                'Vexed Volcanics': 161,
+                'Gourdian Angel': 162,
+                'Pumpkin Party': 163,
+                'Spectral Escort': 3037,
+                'Astral Presence': 3038,
+                'Arcane Assistance': 3040,
+                'Emerald Allurement': 3041,
+                'Pyrophoric Personality': 3042,
+                'Spellbound Aspect': 3043,
+                'Static Shock': 3044,
+                'Veno Shock': 3045,
+                'Toxic Terrors': 3046,
+                'Arachnid Assault': 3047,
+                'Creepy Crawlies': 3048
             },
             /**
              * Includes effect image in element.

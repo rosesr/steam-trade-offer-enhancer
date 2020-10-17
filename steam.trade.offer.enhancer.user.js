@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.0.7
+// @version     2.0.8
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -1531,16 +1531,16 @@
                                 html += itemHTML;
                             }
                             
-                            if (ids) {
-                                // if tf2 items are in offer
-                                // return summary items with backpack.tf link wrapped around 
-                                const url = `https://backpack.tf/profiles/${steamid}?select=${ids.join(',')}`;
-                                
-                                // wrap the html
-                                html = `<a title="Open on backpack.tf" href="${url}" target="_blank">${html}</a>`;
+                            if (!ids) {
+                                return html;
                             }
                             
-                            return html;
+                            // if tf2 items are in offer
+                            // return summary items with backpack.tf link wrapped around 
+                            const url = `https://backpack.tf/profiles/${steamid}?select=${ids.join(',')}`;
+                            
+                            // wrap the html
+                            return `<a title="Open on backpack.tf" href="${url}" target="_blank">${html}</a>`;
                         }
                         
                         /**
@@ -2636,8 +2636,9 @@
                         });
                     }());
                 }());
+                
                 // configure state
-                (function configure() {
+                (function () {
                     tradeOfferWindow.userChanged(page.get.$activeInventoryTab());
                     
                     if (getStored(stored.id_visible) == 1) {
@@ -2812,7 +2813,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.0.7';
+            const VERSION = '2.0.8';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
@@ -3356,7 +3357,26 @@
                             'Frisky Fireflies': 152,
                             'Smoldering Spirits': 153,
                             'Wandering Wisps': 154,
-                            'Kaleidoscope': 155
+                            'Kaleidoscope': 155,
+                            'Green Giggler':156,
+                            'Laugh-O-Lantern': 157,
+                            'Plum Prankster': 158,
+                            'Pyroland Nightmare': 159,
+                            'Gravelly Ghoul': 160,
+                            'Vexed Volcanics': 161,
+                            'Gourdian Angel': 162,
+                            'Pumpkin Party': 163,
+                            'Spectral Escort': 3037,
+                            'Astral Presence': 3038,
+                            'Arcane Assistance': 3040,
+                            'Emerald Allurement': 3041,
+                            'Pyrophoric Personality': 3042,
+                            'Spellbound Aspect': 3043,
+                            'Static Shock': 3044,
+                            'Veno Shock': 3045,
+                            'Toxic Terrors': 3046,
+                            'Arachnid Assault': 3047,
+                            'Creepy Crawlies': 3048
                         },
                         /**
                          * Includes effect image in element.

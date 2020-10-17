@@ -213,3 +213,7 @@
 ## [2.0.7] - 2020-10-07
 ### Fixed
 - The decline all active offers button not appearing on page.
+
+## [2.0.8] - 2020-10-17
+### Added
+- Scream Fortress 2020 effects.
