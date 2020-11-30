@@ -217,3 +217,7 @@
 ## [2.0.8] - 2020-10-17
 ### Added
 - Scream Fortress 2020 effects.
+
+## [2.0.9] - 2020-11-30
+### Fixed
+- Crash because of marketplace cross listings on classifieds

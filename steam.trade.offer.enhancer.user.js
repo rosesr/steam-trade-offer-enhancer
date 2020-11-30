@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.0.8
+// @version     2.0.9
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -40,8 +40,16 @@
                     const href = offerButtonEl.getAttribute('href');
                     const {
                         listing_intent,
-                        listing_price
+                        listing_price,
+                        listing_mp_price
                     } = itemEl.dataset;
+
+                    // mp listing, no currencies
+                    if (listing_mp_price) {
+                        // continue to avoid crash
+                        return;
+                    }
+
                     const currencies = Utils.stringToCurrencies(listing_price);
                     
                     // no currencies
@@ -2813,7 +2821,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.0.8';
+            const VERSION = '2.0.9';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
