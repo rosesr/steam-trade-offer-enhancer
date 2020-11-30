@@ -150,6 +150,11 @@ const Utils = {
      * @returns {(Object|null)} Object of currencies if string is valid
      */
     stringToCurrencies: function(string) {
+        // mptf cross listing has no listing_price
+        if (!string) {
+            return null;
+        }
+        
         const prices = string.split(',');
         const currencies = {};
         const currencyNames = {

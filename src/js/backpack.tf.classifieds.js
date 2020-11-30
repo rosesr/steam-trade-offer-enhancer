@@ -10,16 +10,8 @@ function({ Utils }) {
         const href = offerButtonEl.getAttribute('href');
         const {
             listing_intent,
-            listing_price,
-            listing_mp_price
+            listing_price
         } = itemEl.dataset;
-
-        // mp listing, no currencies
-        if (listing_mp_price) {
-            // continue to avoid crash
-            return;
-        }
-        
         const currencies = Utils.stringToCurrencies(listing_price);
         
         // no currencies
