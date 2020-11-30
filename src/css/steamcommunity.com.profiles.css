@@ -1,0 +1,38 @@
+.unusual {
+    background-position: center !important;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+.uncraft {
+    border-style: dashed !important;
+}
+
+.strange:before {
+    content: " ";
+    position: absolute;
+    z-index: 1;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    border: 2px solid rgba(207, 106, 50, 0.5);
+    /* box-shadow: inset 0px 0px 12px 0px #CF6A32; */
+}
+
+.icons img.spell {
+    width: 14px;
+    height: 20px;
+}
+
+.icons {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    width: 100%;
+    height: 20px;
+}
+
+.item_showcase_item {
+    line-height: inherit !important;
+}

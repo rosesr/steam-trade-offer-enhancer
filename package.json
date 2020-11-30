@@ -1,0 +1,27 @@
+{
+  "name": "steam-trade-offer-enhancer",
+  "version": "2.0.9",
+  "description": "Fork of [Steam Trade Offer Enhancer by scholtzm](https://github.com/scholtzm/steam-trade-offer-enhancer) with extra features and performance enhancements. This userscript has many features useful for Team Fortress 2 trading.",
+  "main": "steam.trade.offer.enhancer.user.js",
+  "dependencies": {
+    "eslint-plugin-jsdoc": "^15.9.1",
+    "eslint": "^6.3.0"
+  },
+  "devDependencies": {
+    "packus": "git+https://github.com/juliarose/packus.git#v1.0.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "packus build --output steam.trade.offer.enhancer"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/juliarose/steam-trade-offer-enhancer.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/juliarose/steam-trade-offer-enhancer/issues"
+  },
+  "homepage": "https://github.com/juliarose/steam-trade-offer-enhancer#readme"
+}
