@@ -25,7 +25,7 @@ function({ $, Utils, getStored, setStored }) {
     let keyValue = getStored(stored.key_price);
     
     // wait for the backpack to load
-    (function waitForBackpack() {
+    (function () {
         // the backpack was loaded
         function onBackpackLoad() {
             // get the value of keys in metal

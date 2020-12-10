@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.0.9
+// @version     2.1.0
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -105,7 +105,7 @@
                 let keyValue = getStored(stored.key_price);
                 
                 // wait for the backpack to load
-                (function waitForBackpack() {
+                (function () {
                     // the backpack was loaded
                     function onBackpackLoad() {
                         // get the value of keys in metal
@@ -939,7 +939,7 @@
                 // modify each trade offer
                 Array.from(dom.offers).forEach((offerEl) => {
                     // add buttons to the offer
-                    (function addButtons() {
+                    (function () {
                         const reportButtonEl = offerEl.getElementsByClassName('btn_report')[0];
                         
                         // sent offers will not have a report button - we won't add any buttons to them
@@ -2813,7 +2813,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.0.9';
+            const VERSION = '2.1.0';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
@@ -3008,41 +3008,6 @@
                 offers: {
                     // helpers for identifying items
                     identifiers: {
-                        // checks whether the item is strange or not (strange unusuals, strange genuine, etc.)
-                        // item is an asset from steam
-                        isStrange: function(item) {
-                            const pattern = /^Strange ([0-9\w\s\\(\)'\-]+) \- ([0-9\w\s\(\)'-]+): (\d+)\n?$/;
-                            // is a strange quality item
-                            const isStrangeQuality = (item.name_color || '').toUpperCase() === 'CF6A32';
-                            const hasStrangeItemType = Boolean(
-                                // the name must begin with strange
-                                /^Strange /.test(item.market_hash_name) &&
-                                // the item has a type
-                                item.type &&
-                                // the type matches a pattern similar to (Strange Hat - Points Scored: 0)
-                                pattern.test(item.type)
-                            );
-                            const hasStatClock = (item.descriptions || []).some((description) => {
-                                return Boolean(
-                                    // has an orange color
-                                    (
-                                        description.color &&
-                                        description.color.toUpperCase() === 'CF6A32'
-                                    ) &&
-                                    // and matches this text
-                                    'Strange Stat Clock Attached' === description.value.trim()
-                                );
-                            });
-                            
-                            return Boolean(
-                                // we don't mean strange quality items
-                                !isStrangeQuality &&
-                                (
-                                    hasStrangeItemType ||
-                                    hasStatClock
-                                )
-                            );
-                        },
                         // checks if the item is a rare tf2 key
                         isRareTF2Key: function(item) {
                             const { appdata } = item;
@@ -3077,11 +3042,34 @@
                         getItemAttributes: function(item) {
                             const hasDescriptions = typeof item.descriptions === 'object';
                             const isUnique = (item.name_color || '').toUpperCase() === '7D6D00';
-                            const { isStrange } = shared.offers.identifiers;
                             const { getEffectValue } = shared.offers.unusual;
                             const attributes = {};
+                            // is a strange quality item
+                            // thse are not marked as strange
+                            const isStrangeQuality = (item.name_color || '').toUpperCase() === 'CF6A32';
+                            const hasStrangeItemType = Boolean(
+                                // the name must begin with strange
+                                /^Strange /.test(item.market_hash_name) &&
+                                // the item has a type
+                                item.type &&
+                                // the type matches a pattern similar to (Strange Hat - Points Scored: 0)
+                                /^Strange ([0-9\w\s\\(\)'\-]+) \- ([0-9\w\s\(\)'-]+): (\d+)\n?$/.test(item.type)
+                            );
+                            const hasStatClock = (description) => {
+                                return Boolean(
+                                    // has an orange color
+                                    (
+                                        description.color &&
+                                        description.color.toUpperCase() === 'CF6A32'
+                                    ) &&
+                                    // and matches this text
+                                    'Strange Stat Clock Attached' === description.value.trim()
+                                );
+                            };
                             
-                            if (isStrange(item)) {
+                            // whether the item is strange or not (strange unusuals, strange genuine, etc.)
+                            // NOT strange quality items
+                            if (!isStrangeQuality && hasStrangeItemType) {
                                 attributes.strange = true;
                             }
                             
@@ -3121,6 +3109,13 @@
                                 
                                 if (isUncraftable) {
                                     attributes.uncraft = true;
+                                }
+                                
+                                // whether the item is strange or not (strange unusuals, strange genuine, etc.)
+                                // NOT strange quality items
+                                // this item is an item with a stat clock attached
+                                if (!isStrangeQuality && hasStatClock(description)) {
+                                    attributes.strange = true;
                                 }
                             }
                             
@@ -3193,8 +3188,8 @@
                     },
                     // unusual helper functions
                     unusual: {
-                        // all unusual effects as of the winter 2019 update
                         effectsMap: {
+                            'Community Sparkle': 4,
                             'Green Confetti': 6,
                             'Purple Confetti': 7,
                             'Haunted Ghosts': 8,
@@ -3381,7 +3376,26 @@
                             'Veno Shock': 3045,
                             'Toxic Terrors': 3046,
                             'Arachnid Assault': 3047,
-                            'Creepy Crawlies': 3048
+                            'Creepy Crawlies': 3048,
+                            'Frozen Fractals': 164,
+                            'Lavender Landfall': 165,
+                            'Special Snowfall': 166,
+                            'Divine Desire': 167,
+                            'Distant Dream': 168,
+                            'Violent Wintertide': 169,
+                            'Blighted Snowstorm': 170,
+                            'Pale Nimbus': 171,
+                            'Genus Plasmos': 172,
+                            'Serenus Lumen': 173,
+                            'Ventum Maris': 174,
+                            'Mirthful Mistletoe': 175,
+                            'Delightful Star': 3049,
+                            'Frosted Star': 3050,
+                            'Apotheosis': 3051,
+                            'Ascension': 3052,
+                            'Reindoonicorn Rancher': 3053,
+                            'Twinkling Lights': 3055,
+                            'Shimmering Lights': 3056
                         },
                         /**
                          * Includes effect image in element.

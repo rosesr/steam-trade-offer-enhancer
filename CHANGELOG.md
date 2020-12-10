@@ -220,4 +220,12 @@
 
 ## [2.0.9] - 2020-11-30
 ### Fixed
-- Crash because of marketplace cross listings on classifieds
+- Crash because of marketplace cross listings on classifieds.
+
+## [2.1.0] - 2020-12-10
+### Added
+- Community Sparkle effect.
+- Smissmas 2020 effects.
+
+### Changed
+- Processing item attributes is now faster.

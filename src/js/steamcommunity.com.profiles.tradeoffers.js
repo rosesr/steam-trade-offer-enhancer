@@ -7,7 +7,7 @@ function({ $, VERSION, WINDOW, addAttributesToHoverItems }) {
     // modify each trade offer
     Array.from(dom.offers).forEach((offerEl) => {
         // add buttons to the offer
-        (function addButtons() {
+        (function () {
             const reportButtonEl = offerEl.getElementsByClassName('btn_report')[0];
             
             // sent offers will not have a report button - we won't add any buttons to them
