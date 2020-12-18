@@ -51,3 +51,9 @@ Fork of [Steam Trade Offer Enhancer by scholtzm](https://github.com/scholtzm/ste
 
 ### ```https://backpack.tf/classifieds```<br/>```https://backpack.tf/stats```
 - Auto-generate links on listings for use in trade offers.
+
+# Contributing
+
+This script is packaged using [packus](https://github.com/juliarose/packus).
+
+Files for each page are broken down within the src directory which are then joined together to build the script. When working on source files, run ```npm install``` to install dependencies, then ```npm run build``` when building. 
