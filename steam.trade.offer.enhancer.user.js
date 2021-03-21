@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.1.0
+// @version     2.1.1
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -1283,6 +1283,10 @@
                     background-color: #2E4766;
                 }
                 
+                .btn_small {
+                    user-select: none;
+                }
+                
                 .summary_item {
                     display: inline-block;
                     position: relative;
@@ -1641,13 +1645,6 @@
                         // chain(items.reverse(), 100, Clear, summarize);
                     }
                     
-                    // add items to the trade offer
-                    function addItemsToOffer(items, callback) {
-                        const MoveItem = WINDOW.MoveItemToTrade;
-                        
-                        chain(items, 20, MoveItem, callback);
-                    }
-                    
                     /**
                      * Callback when items have finished adding.
                      * @callback addItems-callback
@@ -1661,7 +1658,96 @@
                      * @memberOf tradeOfferWindow
                      */
                     function addItems(items, callback = function() {}) {
-                        addItemsToOffer(items, callback);
+                        function addToSlot(elItem) {
+                            if (WINDOW.BIsInTradeSlot(elItem)) {
+                                // already in trade
+                                return;
+                            }
+                            
+                            const item = elItem.rgItem;
+                            
+                            // we don't want to touch it
+                            if (item.is_stackable) {
+                                return;
+                            }
+                            
+                            const xferAmount = 1;
+                            const is_currency = false;
+                            const userslots = (
+                                item.is_their_item ?
+                                    WINDOW.g_rgCurrentTradeStatus.them :
+                                    WINDOW.g_rgCurrentTradeStatus.me
+                            );
+                            const slots = (
+                                is_currency ?
+                                    userslots.currency :
+                                    userslots.assets
+                            );
+                            
+                            // find existing element
+                            let iExistingElement = -1;
+                            let bChanged = false;
+                            
+                            for (let i = 0; i < slots.length; i++) {
+                                const rgSlotItem = slots[i];
+                                const id = (
+                                    is_currency ?
+                                        rgSlotItem.currencyid :
+                                        rgSlotItem.assetid
+                                );
+                                const isGood = Boolean(
+                                    rgSlotItem.appid === item.appid &&
+                                    rgSlotItem.contextid === item.contextid &&
+                                    id === item.id
+                                );
+                                
+                                if (isGood) {
+                                    iExistingElement = i;
+                                    break;
+                                }
+                            }
+                            
+                            if (iExistingElement !== -1) {
+                                if (slots[iExistingElement].amount !== xferAmount) {
+                                    slots[iExistingElement].amount = xferAmount;
+                                    bChanged = true;
+                                }
+                            } else {
+                                const oSlot = {
+                                    appid: item.appid,
+                                    contextid: item.contextid,
+                                    amount: xferAmount
+                                };
+                                
+                                if (is_currency) {
+                                    oSlot.currencyid = item.id;
+                                } else {
+                                    oSlot.assetid = item.id;
+                                }
+                                
+                                slots.push(oSlot);
+                                bChanged = true;
+                            }
+                            
+                            if (!bChanged) {
+                                return;
+                            }
+                            
+                            WINDOW.GTradeStateManager.m_bChangesMade = true;
+                        }
+                        // chaining
+                        // chain(items, 20, WINDOW.MoveItemToTrade, callback);
+                        
+                        if (WINDOW.Economy_UseResponsiveLayout() && WINDOW.ResponsiveTrade_SwitchMode) {
+                            WINDOW.ResponsiveTrade_SwitchMode(0);
+                        }
+                        
+                        items.forEach(addToSlot);
+                        // update the trade status
+                        WINDOW.g_rgCurrentTradeStatus.version++;
+                        WINDOW.RefreshTradeStatus(WINDOW.g_rgCurrentTradeStatus);
+                        
+                        return callback();
                     }
                     
                     /**
@@ -2596,10 +2682,12 @@
                                 );
                                 
                                 if (canInstantSummarize) {
-                                    summarize();
+                                    // we use a timer if multiple dom insertions are batched together
+                                    clearTimeout(timer);
+                                    timer = setTimeout(summarize, 10);
                                 } else {
                                     clearTimeout(timer);
-                                    timer = setTimeout(summarize, 400);
+                                    timer = setTimeout(summarize, 200);
                                 }
                             });
                             let lastSummarized = new Date();
@@ -2668,7 +2756,8 @@
                                 return Math.max(Math.floor((cTotalSlotsInUse + 5) / 4) * 4, 8);
                             }
                         };
-                        const $slots = bYourSlots ? page.$yourSlots : page.$theirSlots;
+                        // const $slots = bYourSlots ? page.$yourSlots : page.$theirSlots;
+                        const $slots = bYourSlots ? $('#your_slots') : $('#their_slots');
                         const elSlotContainer = $slots[0];
                         const cDesiredSlots = getDesiredSlots();
                         const cDesiredItemSlots = cDesiredSlots - cCurrencySlotsInUse;
@@ -2813,7 +2902,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.1.0';
+            const VERSION = '2.1.1';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
@@ -3099,8 +3188,11 @@
                                 
                                 if (matchesEffect) {
                                     const effectName = matchesEffect[1];
+                                    const value = getEffectValue(effectName);
                                     
-                                    attributes.effect = getEffectValue(effectName);
+                                    if (value) {
+                                        attributes.effect = value;
+                                    }
                                 }
                                 
                                 if (isSpelled) {
@@ -3451,7 +3543,7 @@
                     function save() {
                         let value = JSON.stringify(values);
                         
-                        if (value.length >= 10000) {
+                        if (value.length >= 50000) {
                             // clear cache when it becomes too big
                             values = {};
                             value = '{}'; 
@@ -3460,8 +3552,16 @@
                         setStored(CACHE_INDEX, value);
                     }
                     
-                    function store(key, value) {
-                        values[key] = value;
+                    // value is a hash of attributes
+                    // at the MOST, this will appear as:
+                    // {
+                    //     spelled: true,
+                    //     uncraft: true,
+                    //     strange: true,
+                    //     effect: 9
+                    // }
+                    function store(key, attributes) {
+                        values[key] = attributes;
                     }
                     
                     function get() {
@@ -3470,9 +3570,9 @@
                     
                     function key(itemEl) {
                         const classinfo = itemEl.getAttribute('data-economy-item');
-                        const [ , , classid] = classinfo.split('/');
+                        const [ , , classid, instanceid] = classinfo.split('/');
                         
-                        return classid;
+                        return [classid, instanceid].join(':');
                     }
                     
                     function getValue(key) {
@@ -3498,9 +3598,8 @@
                     .sort((a, b) => {
                         const getValue = (itemEl) => {
                             const unusualBorderColor = 'rgb(134, 80, 172)';
-                            const { borderColor } = itemEl.style;
                             
-                            if (borderColor === unusualBorderColor) {
+                            if (itemEl.style.borderColor === unusualBorderColor) {
                                 return 1;
                             }
                             

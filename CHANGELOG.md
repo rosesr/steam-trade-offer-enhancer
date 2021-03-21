@@ -229,3 +229,10 @@
 
 ### Changed
 - Processing item attributes is now faster.
+
+## [2.1.1] - 2020-03-20
+### Fixed
+- Bug with spelled/non-spelled items mistakenly showing as spelled due to attribute caches.
+
+### Changed
+- Adding multiple items is now instant.

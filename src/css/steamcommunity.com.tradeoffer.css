@@ -15,6 +15,10 @@
     background-color: #2E4766;
 }
 
+.btn_small {
+    user-select: none;
+}
+
 .summary_item {
     display: inline-block;
     position: relative;

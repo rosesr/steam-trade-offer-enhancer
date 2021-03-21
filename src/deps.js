@@ -283,8 +283,11 @@ const shared = {
                     
                     if (matchesEffect) {
                         const effectName = matchesEffect[1];
+                        const value = getEffectValue(effectName);
                         
-                        attributes.effect = getEffectValue(effectName);
+                        if (value) {
+                            attributes.effect = value;
+                        }
                     }
                     
                     if (isSpelled) {
@@ -635,7 +638,7 @@ function addAttributesToHoverItems(itemsList) {
         function save() {
             let value = JSON.stringify(values);
             
-            if (value.length >= 10000) {
+            if (value.length >= 50000) {
                 // clear cache when it becomes too big
                 values = {};
                 value = '{}'; 
@@ -644,8 +647,16 @@ function addAttributesToHoverItems(itemsList) {
             setStored(CACHE_INDEX, value);
         }
         
-        function store(key, value) {
-            values[key] = value;
+        // value is a hash of attributes
+        // at the MOST, this will appear as:
+        // {
+        //     spelled: true,
+        //     uncraft: true,
+        //     strange: true,
+        //     effect: 9
+        // }
+        function store(key, attributes) {
+            values[key] = attributes;
         }
         
         function get() {
@@ -654,9 +665,9 @@ function addAttributesToHoverItems(itemsList) {
         
         function key(itemEl) {
             const classinfo = itemEl.getAttribute('data-economy-item');
-            const [ , , classid] = classinfo.split('/');
+            const [ , , classid, instanceid] = classinfo.split('/');
             
-            return classid;
+            return [classid, instanceid].join(':');
         }
         
         function getValue(key) {
@@ -682,9 +693,8 @@ function addAttributesToHoverItems(itemsList) {
         .sort((a, b) => {
             const getValue = (itemEl) => {
                 const unusualBorderColor = 'rgb(134, 80, 172)';
-                const { borderColor } = itemEl.style;
                 
-                if (borderColor === unusualBorderColor) {
+                if (itemEl.style.borderColor === unusualBorderColor) {
                     return 1;
                 }
                 

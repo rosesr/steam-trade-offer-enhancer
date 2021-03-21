@@ -272,13 +272,6 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
             // chain(items.reverse(), 100, Clear, summarize);
         }
         
-        // add items to the trade offer
-        function addItemsToOffer(items, callback) {
-            const MoveItem = WINDOW.MoveItemToTrade;
-            
-            chain(items, 20, MoveItem, callback);
-        }
-        
         /**
          * Callback when items have finished adding.
          * @callback addItems-callback
@@ -292,7 +285,96 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
          * @memberOf tradeOfferWindow
          */
         function addItems(items, callback = function() {}) {
-            addItemsToOffer(items, callback);
+            function addToSlot(elItem) {
+                if (WINDOW.BIsInTradeSlot(elItem)) {
+                    // already in trade
+                    return;
+                }
+                
+                const item = elItem.rgItem;
+                
+                // we don't want to touch it
+                if (item.is_stackable) {
+                    return;
+                }
+                
+                const xferAmount = 1;
+                const is_currency = false;
+                const userslots = (
+                    item.is_their_item ?
+                        WINDOW.g_rgCurrentTradeStatus.them :
+                        WINDOW.g_rgCurrentTradeStatus.me
+                );
+                const slots = (
+                    is_currency ?
+                        userslots.currency :
+                        userslots.assets
+                );
+                
+                // find existing element
+                let iExistingElement = -1;
+                let bChanged = false;
+                
+                for (let i = 0; i < slots.length; i++) {
+                    const rgSlotItem = slots[i];
+                    const id = (
+                        is_currency ?
+                            rgSlotItem.currencyid :
+                            rgSlotItem.assetid
+                    );
+                    const isGood = Boolean(
+                        rgSlotItem.appid === item.appid &&
+                        rgSlotItem.contextid === item.contextid &&
+                        id === item.id
+                    );
+                    
+                    if (isGood) {
+                        iExistingElement = i;
+                        break;
+                    }
+                }
+                
+                if (iExistingElement !== -1) {
+                    if (slots[iExistingElement].amount !== xferAmount) {
+                        slots[iExistingElement].amount = xferAmount;
+                        bChanged = true;
+                    }
+                } else {
+                    const oSlot = {
+                        appid: item.appid,
+                        contextid: item.contextid,
+                        amount: xferAmount
+                    };
+                    
+                    if (is_currency) {
+                        oSlot.currencyid = item.id;
+                    } else {
+                        oSlot.assetid = item.id;
+                    }
+                    
+                    slots.push(oSlot);
+                    bChanged = true;
+                }
+                
+                if (!bChanged) {
+                    return;
+                }
+                
+                WINDOW.GTradeStateManager.m_bChangesMade = true;
+            }
+            // chaining
+            // chain(items, 20, WINDOW.MoveItemToTrade, callback);
+            
+            if (WINDOW.Economy_UseResponsiveLayout() && WINDOW.ResponsiveTrade_SwitchMode) {
+                WINDOW.ResponsiveTrade_SwitchMode(0);
+            }
+            
+            items.forEach(addToSlot);
+            // update the trade status
+            WINDOW.g_rgCurrentTradeStatus.version++;
+            WINDOW.RefreshTradeStatus(WINDOW.g_rgCurrentTradeStatus);
+            
+            return callback();
         }
         
         /**
@@ -1227,10 +1309,12 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
                     );
                     
                     if (canInstantSummarize) {
-                        summarize();
+                        // we use a timer if multiple dom insertions are batched together
+                        clearTimeout(timer);
+                        timer = setTimeout(summarize, 10);
                     } else {
                         clearTimeout(timer);
-                        timer = setTimeout(summarize, 400);
+                        timer = setTimeout(summarize, 200);
                     }
                 });
                 let lastSummarized = new Date();
@@ -1299,7 +1383,8 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
                     return Math.max(Math.floor((cTotalSlotsInUse + 5) / 4) * 4, 8);
                 }
             };
-            const $slots = bYourSlots ? page.$yourSlots : page.$theirSlots;
+            // const $slots = bYourSlots ? page.$yourSlots : page.$theirSlots;
+            const $slots = bYourSlots ? $('#your_slots') : $('#their_slots');
             const elSlotContainer = $slots[0];
             const cDesiredSlots = getDesiredSlots();
             const cDesiredItemSlots = cDesiredSlots - cCurrencySlotsInUse;
