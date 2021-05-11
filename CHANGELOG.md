@@ -236,3 +236,10 @@
 
 ### Changed
 - Adding multiple items is now instant.
+
+## [2.1.2] - 2020-05-10
+### Fixed
+- Bug with adding "undefined" particle images on items in tradeoffer pages.
+
+### Added
+- "Add Recent" button to add the most recently obtained items.

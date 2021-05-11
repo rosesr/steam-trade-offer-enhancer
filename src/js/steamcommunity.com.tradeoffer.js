@@ -142,7 +142,7 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
                     const imgs = [`url(${img})`];
                     const classes = ['summary_item'];
                     
-                    if (effect !== 'none') {
+                    if (effect !== undefined && effect !== 'none') {
                         imgs.push(`url('${getEffectURL(effect)}')`);
                     }
                     
@@ -615,18 +615,9 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
          * @returns {Array} Array of picked items.
          */
         function pickItems(you, amount, index, finder) {
-            // get inventory for selected app and context
-            function getInventory(user) {
-                return (user.rgAppInfo[appid] &&
-                    user.rgAppInfo[appid].rgContexts[contextid].inventory &&
-                    user.rgAppInfo[appid].rgContexts[contextid].inventory.rgInventory
-                ) || {};
-            }
-            
             function getItems(you) {
-                const user = you ? UserYou : UserThem;
                 const $items = (you ? page.$yourSlots : page.$theirSlots).find('.item');
-                const inventory = getInventory(user);
+                const inventory = getInventory(appid, contextid, you);
                 // get ids of items in trade offer matching app
                 const addedIDs = $items.toArray().reduce((arr, el) => {
                     const split = el.id.replace('item', '').split('_');
@@ -683,9 +674,7 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
                 return items;
             }
             
-            const $inventory = page.get.$inventory();
-            const match = ($inventory.attr('id') || '').match(/(\d+)_(\d+)$/);
-            const [ , appid, contextid] = (match || []);
+            const { appid, contextid } = getInventoryApp();
             
             // inventory must be present
             if (!appid) {
@@ -846,6 +835,75 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
                         satisfied
                     };
                 },
+                // get items by whether they were recently obtained
+                'RECENT': function() {
+                    // gets nearest numbers to a given number within range of gap
+                    const getNearNumbers = (nums, near, gap) => {
+                        if (nums.length === 0) {
+                            return [];
+                        }
+                        
+                        const getDistance = (num) => Math.abs(num - near);
+                        const sorted = nums
+                            // add distance from "near" for each num
+                            .map((num) => {
+                                return {
+                                    num,
+                                    distance: getDistance(num)
+                                };
+                            })
+                            .sort((a, b) => {
+                                return a.distance - b.distance;
+                            });
+                        
+                        // check if the nearest value is within the gap value
+                        if (sorted[0].distance > gap) {
+                            return [];
+                        }
+                        
+                        // add the initial
+                        const values = [sorted[0].num];
+                        
+                        // loop through sorted values
+                        for (let i = 1; i < sorted.length; i++) {
+                            const current = sorted[i];
+                            const prev = sorted[i - 1];
+                            const difference = Math.abs(prev.distance - current.distance);
+                            
+                            // gap is too big
+                            if (difference > gap) {
+                                // stop bleeding
+                                return values;
+                            }
+                            
+                            values.push(current.num);
+                        }
+                        
+                        return values;
+                    };
+                    const { appid, contextid } = getInventoryApp();
+                    const inventories = (
+                        you === null ?
+                            [true, false] :
+                            [you]
+                    ).map(you => getInventory(appid, contextid, you));
+                    const ids = inventories.reduce((ids, inventory) => {
+                        return [
+                            ...ids,
+                            ...Object.keys(inventory).map(id => parseInt(id))
+                        ];
+                    }, []);
+                    const highestId = Math.max(0, ...ids);
+                    const nearIds = getNearNumbers(ids, highestId, 50).map(id => id.toString());
+                    const found = finders.id(nearIds);
+                    const items = getElementsForItems(found);
+                    const satisfied = nearIds.length === items.length;
+                    
+                    return {
+                        items,
+                        satisfied
+                    };
+                },
                 // get items displayed in the inventory
                 'ITEMS': function() {
                     // check if an items is visible on page
@@ -877,6 +935,29 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
         
         return getItems;
     }());
+    
+    // get inventory for selected app and context of user
+    function getInventory(appid, contextid, you) {
+        const user = you ? UserYou : UserThem;
+        
+        return (
+            user.rgAppInfo[appid] &&
+            user.rgAppInfo[appid].rgContexts[contextid].inventory &&
+            user.rgAppInfo[appid].rgContexts[contextid].inventory.rgInventory
+        ) || {};
+    }
+    
+    // gets the app of the currently visible inventory
+    function getInventoryApp() {
+        const $inventory = page.get.$inventory();
+        const match = ($inventory.attr('id') || '').match(/(\d+)_(\d+)$/);
+        const [ , appid, contextid] = (match || []);
+        
+        return {
+            appid,
+            contextid
+        };
+    }
     
     // customizes the elements within this inventory
     function customizeItems(inventory) {
@@ -914,6 +995,9 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
                     </div>
                     <div id="btn_addmetal" class="btn_silver btn_black btn_small">
                         <span>Add Metal</span>
+                    </div>
+                    <div id="btn_addrecent" class="btn_silver btn_black btn_small">
+                        <span>Add Recent</span>
                     </div>
                     <div id="btn_addlisting" class="btn_blue btn_black btn_small">
                         <span>Add Listing</span>
@@ -985,6 +1069,7 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
             $items: $('#btn_additems'),
             $keys: $('#btn_addkeys'),
             $metal: $('#btn_addmetal'),
+            $recent: $('#btn_addrecent'),
             $listing: $('#btn_addlisting'),
             $addIDs: $('#btn_addids'),
             $getIDs: $('#btn_getids')
@@ -1177,6 +1262,9 @@ function({ WINDOW, $, Utils, shared, getStored, setStored }) {
         });
         page.btns.$metal.on('click', () => {
             addItems('METAL', ...getDefaults());
+        });
+        page.btns.$recent.on('click', () => {
+            addItems('RECENT', ...getDefaults());
         });
         page.btns.$listing.on('click', () => {
             addListingPrice();

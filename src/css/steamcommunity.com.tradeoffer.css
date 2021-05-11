@@ -3,6 +3,10 @@
     color: #FFFFFF;
 }
 
+#add_btns .btn_small > span {
+    padding: 0 12px;
+}
+
 .btn_green {
     background-color: #709D3C;
 }
