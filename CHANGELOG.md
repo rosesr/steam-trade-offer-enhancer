@@ -243,3 +243,8 @@
 
 ### Added
 - "Add Recent" button to add the most recently obtained items.
+
+## [2.1.3] - 2020-05-12
+### Changed
+- "Add Recent" button will add the next most recent items for each click.
+- "Add Recent" button will now only pick items based on filtered items.

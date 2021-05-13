@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.1.2
+// @version     2.1.3
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -2258,22 +2258,67 @@
                                     
                                     return values;
                                 };
-                                const { appid, contextid } = getInventoryApp();
-                                const inventories = (
-                                    you === null ?
-                                        [true, false] :
-                                        [you]
-                                ).map(you => getInventory(appid, contextid, you));
-                                const ids = inventories.reduce((ids, inventory) => {
-                                    return [
-                                        ...ids,
-                                        ...Object.keys(inventory).map(id => parseInt(id))
-                                    ];
-                                }, []);
+                                // check if an items is visible on page
+                                // the item iteself will not contain the display property, but its parent does
+                                const isVisible = (i, el) => {
+                                    return el.parentNode.style.display !== 'none';
+                                };
+                                // select all visible items from active inventory
+                                let found = page.get.$inventory().find('div.item').filter(isVisible).toArray();
+                                
+                                // select in reverse
+                                if (index < 0) {
+                                    index = (index + 1) * -1;
+                                    found = found.reverse();
+                                }
+                                
+                                const $items = (you ? page.$yourSlots : page.$theirSlots).find('.item');
+                                const getItemIdFromElement = (el) => el.id.split('_')[2];
+                                // creates filter for whether the id is the given list
+                                // setting "mustInclude" to true will filter so that "ids" must include the id
+                                // setting "mustInclude" to false will filter so that "ids" must not include the id
+                                const filterIds = (mustInclude, ids, processor) => {
+                                    const map = ids
+                                        .reduce((map, id) => {
+                                            map[id] = true;
+                                            
+                                            return map;
+                                        }, {});
+                                    
+                                    return function(value) {
+                                        // if a processor was provided it will process the value to convert it into an id
+                                        // e.g. getting the id from an html element
+                                        const id = processor ? processor(value) : value;
+                                        const hasId = Boolean(map[id]);
+                                        
+                                        // check whether this has/does not have the id
+                                        return mustInclude === hasId;
+                                    };
+                                };
+                                const { appid } = getInventoryApp(you);
+                                // get ids of items in trade offer matching app
+                                const addedIDs = $items.toArray()
+                                    .reduce((arr, el) => {
+                                        const split = el.id.replace('item', '').split('_');
+                                        const [iAppid, , assetid] = split;
+                                        
+                                        if (iAppid === appid) {
+                                            arr.push(assetid);
+                                        }
+                                        
+                                        return arr;
+                                    }, []);
+                                const ids = found
+                                    // get ids as integers
+                                    .map((el) => parseInt(getItemIdFromElement(el)))
+                                    // filter out ids that are already added in the offer
+                                    .filter(filterIds(false, addedIDs));
                                 const highestId = Math.max(0, ...ids);
-                                const nearIds = getNearNumbers(ids, highestId, 50).map(id => id.toString());
-                                const found = finders.id(nearIds);
-                                const items = getElementsForItems(found);
+                                const nearIds = getNearNumbers(ids, highestId, 100)
+                                    .map(id => id.toString());
+                                const items = found
+                                    // filter elements to only this set of ids
+                                    .filter(filterIds(true, nearIds, getItemIdFromElement));
                                 const satisfied = nearIds.length === items.length;
                                 
                                 return {
@@ -2994,7 +3039,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.1.2';
+            const VERSION = '2.1.3';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
