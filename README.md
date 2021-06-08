@@ -56,4 +56,8 @@ Fork of [Steam Trade Offer Enhancer by scholtzm](https://github.com/scholtzm/ste
 
 This script is packaged using [packus](https://github.com/juliarose/packus).
 
-Files for each page are broken down within the src directory which are then joined together to build the script. When working on source files, run ```npm install``` to install dependencies, then ```npm run build``` when building. 
+Files for each page are broken down within the src directory which are then joined together to build the script. When working on source files, run ```npm install``` to install dependencies, then ```npm run build``` when building.
+
+# Donations
+
+If you found this tool useful and want to give something for my time you can [send me an offer](https://steamcommunity.com/tradeoffer/new/?partner=119913840&token=ybdKNJEA).
