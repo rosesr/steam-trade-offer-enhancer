@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.1.3
+// @version     2.1.4
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -3039,7 +3039,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.1.3';
+            const VERSION = '2.1.4';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
@@ -3587,7 +3587,7 @@
                             'Smoldering Spirits': 153,
                             'Wandering Wisps': 154,
                             'Kaleidoscope': 155,
-                            'Green Giggler':156,
+                            'Green Giggler': 156,
                             'Laugh-O-Lantern': 157,
                             'Plum Prankster': 158,
                             'Pyroland Nightmare': 159,
@@ -3597,7 +3597,7 @@
                             'Pumpkin Party': 163,
                             'Spectral Escort': 3037,
                             'Astral Presence': 3038,
-                            'Arcane Assistance': 3040,
+                            'Arcane Assistance': 3039,
                             'Emerald Allurement': 3041,
                             'Pyrophoric Personality': 3042,
                             'Spellbound Aspect': 3043,
@@ -3624,7 +3624,46 @@
                             'Ascension': 3052,
                             'Reindoonicorn Rancher': 3053,
                             'Twinkling Lights': 3055,
-                            'Shimmering Lights': 3056
+                            'Shimmering Lights': 3056,
+                            'Resonation': 177,
+                            'Aggradation': 178,
+                            'Lucidation': 179,
+                            'Stunning': 180,
+                            'Ardentum Saturnalis': 181,
+                            'Fragrancium Elementalis': 182,
+                            'Reverium Irregularis': 183,
+                            'Perennial Petals': 185,
+                            'Flavorsome Sunset': 186,
+                            'Raspberry Bloom': 187,
+                            'Iridescence': 188,
+                            'Tempered Thorns': 189,
+                            'Devilish Diablo': 190,
+                            'Severed Serration': 191,
+                            'Shrieking Shades': 192,
+                            'Restless Wraiths': 194,
+                            'Infernal Wraith': 195,
+                            'Phantom Crown': 196,
+                            'Ancient Specter': 197,
+                            'Viridescent Peeper': 198,
+                            'Eyes of Molten': 199,
+                            'Ominous Stare': 200,
+                            'Pumpkin Moon': 201,
+                            'Frantic Spooker': 202,
+                            'Frightened Poltergeist': 203,
+                            'Energetic Haunter': 204,
+                            'Spectral Shackles': 3059,
+                            'Cursed Confinement': 3060,
+                            'Cavalier de Carte': 3062,
+                            'Hollow Flourish': 3063,
+                            'Magic Shuffle': 3064,
+                            'Vigorous Pulse': 3065,
+                            'Thundering Spirit': 3066,
+                            'Galvanic Defiance': 3067,
+                            'Wispy Halos': 3068,
+                            'Nether Wisps': 3069,
+                            'Aurora Borealis': 3070,
+                            'Aurora Australis': 3071,
+                            'Aurora Polaris': 3072
                         },
                         /**
                          * Includes effect image in element.

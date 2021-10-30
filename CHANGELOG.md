@@ -248,3 +248,8 @@
 ### Changed
 - "Add Recent" button will add the next most recent items for each click.
 - "Add Recent" button will now only pick items based on filtered items.
+
+## [2.1.4] - 2021-10-30
+### Added
+- Summer 2021 effects.
+- Halloween 2021 effects.
