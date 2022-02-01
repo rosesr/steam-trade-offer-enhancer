@@ -253,3 +253,7 @@
 ### Added
 - Summer 2021 effects.
 - Halloween 2021 effects.
+
+## [2.1.5] - 2022-01-31
+### Added
+- Winter 2021 effects.

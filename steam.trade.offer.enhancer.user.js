@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        Steam Trade Offer Enhancer
 // @description Browser script to enhance Steam trade offers.
-// @version     2.1.4
+// @version     2.1.5
 // @author      Julia
 // @namespace   http://steamcommunity.com/profiles/76561198080179568/
 // @updateURL   https://github.com/juliarose/steam-trade-offer-enhancer/raw/master/steam.trade.offer.enhancer.meta.js
@@ -3039,7 +3039,7 @@
     (function() {
         const DEPS = (function() {
             // current version number of script
-            const VERSION = '2.1.4';
+            const VERSION = '2.1.5';
             // our window object for accessing globals
             const WINDOW = unsafeWindow;
             // dependencies to provide to each page script    
@@ -3418,7 +3418,6 @@
                     // unusual helper functions
                     unusual: {
                         effectsMap: {
-                            'Community Sparkle': 4,
                             'Green Confetti': 6,
                             'Purple Confetti': 7,
                             'Haunted Ghosts': 8,
@@ -3663,7 +3662,34 @@
                             'Nether Wisps': 3069,
                             'Aurora Borealis': 3070,
                             'Aurora Australis': 3071,
-                            'Aurora Polaris': 3072
+                            'Aurora Polaris': 3072,
+                            'Smissmas Tree': 205,
+                            'Hospitable Festivity': 206,
+                            'Condescending Embrace': 207,
+                            'Sparkling Spruce': 209,
+                            'Glittering Juniper': 210,
+                            'Prismatic Pine': 211,
+                            'Spiraling Lights': 212,
+                            'Twisting Lights': 213,
+                            'Stardust Pathway': 214,
+                            'Flurry Rush': 215,
+                            'Spark of Smissmas': 216,
+                            'Polar Forecast': 218,
+                            'Shining Stag': 219,
+                            'Holiday Horns': 220,
+                            'Ardent Antlers': 221,
+                            'Festive Lights': 223,
+                            'Amethyst Winds': 3073,
+                            'Golden Gusts': 3074,
+                            'Smissmas Swirls': 3075,
+                            'Minty Cypress': 3077,
+                            'Pristine Pine': 3078,
+                            'Sparkly Spruce': 3079,
+                            'Festive Fever': 3081,
+                            'Golden Glimmer': 3083,
+                            'Frosty Silver': 3084,
+                            'Glamorous Dazzle': 3085,
+                            'Sublime Snowstorm': 3087
                         },
                         /**
                          * Includes effect image in element.
