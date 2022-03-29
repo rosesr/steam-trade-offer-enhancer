@@ -228,6 +228,9 @@ const shared = {
                 const isUnique = (item.name_color || '').toUpperCase() === '7D6D00';
                 const { getEffectValue } = shared.offers.unusual;
                 const attributes = {};
+                // get item quality color
+                attributes.color = item.name_color;
+
                 // is a strange quality item
                 // thse are not marked as strange
                 const isStrangeQuality = (item.name_color || '').toUpperCase() === 'CF6A32';
@@ -250,6 +253,11 @@ const shared = {
                         'Strange Stat Clock Attached' === description.value.trim()
                     );
                 };
+                 
+                // checks for a craft number that displays in game (<100) with regex and extracts it
+                if (/.* #\d+$/.test(item.name)) {
+                    attributes.lowcraft = item.name.match(/.* (#\d+)$/)[1];
+                }
                 
                 // whether the item is strange or not (strange unusuals, strange genuine, etc.)
                 // NOT strange quality items
@@ -329,6 +337,7 @@ const shared = {
                     getEffectURL
                 } = shared.offers.unusual;
                 const iconsEl = document.createElement('div');
+                let craftNumberEl = null;
                 const classes = [];
                 
                 if (attributes.effect) {
@@ -345,6 +354,22 @@ const shared = {
                 
                 if (attributes.uncraft) {
                     classes.push('uncraft');
+                }
+                
+                if (attributes.lowcraft) {
+                    // construct icon for spells
+                    craftNumberEl = document.createElement('div');
+
+                    craftNumberEl.innerHTML = attributes.lowcraft;
+                    craftNumberEl.classList = classes;
+                    craftNumberEl.setAttribute('style', `
+                        color:#${attributes.color};
+                        top: -25px;
+                        left: -2px;
+                        text-align: end;
+                        font-size: 18px;
+                        position: relative;
+                    `);
                 }
                 
                 if (attributes.spelled) {
@@ -364,6 +389,11 @@ const shared = {
                     
                     // then insert the element containing icons
                     itemEl.appendChild(iconsEl);
+                }
+                
+                // insert craft number if populated
+                if (craftNumberEl != null) {
+                    itemEl.appendChild(craftNumberEl);
                 }
                 
                 if (classes.length > 0) {
