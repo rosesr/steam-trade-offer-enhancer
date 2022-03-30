@@ -364,11 +364,11 @@ const shared = {
                     craftNumberEl.classList = classes;
                     craftNumberEl.setAttribute('style', `
                         color:#${attributes.color};
-                        top: -25px;
-                        left: -2px;
+                        top: 0px;
+                        left: 2px;
                         text-align: end;
-                        font-size: 18px;
-                        position: relative;
+                        font-size: 16px;
+                        position: absolute;
                     `);
                 }
                 
